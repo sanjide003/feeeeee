@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Official Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="antialiased text-gray-800 collection-shell">
+  <div id="official-login-screen" class="min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-md">
+      <div class="modal-box" style="display:block; position:static; width:100%; max-width:none;">
+        <div class="icon-badge !bg-transparent !shadow-none !p-0"><img id="official-login-modal-logo" src="assets/images/logo.png" alt="Institution Logo" class="h-20 w-20 rounded-full object-cover bg-white border-2 border-slate-200 shadow" onerror="this.src='assets/images/logo.png'"></div>
+        <h3 class="modal-title">Official Login</h3>
+        <p id="official-login-institution-name" class="text-sm font-semibold text-slate-600 text-center mb-3">Institution Name</p>
+        <div class="input-with-icon">
+          <input id="official-username" type="text" class="form-input" placeholder="Username / Email" autocomplete="username">
+        </div>
+        <div class="input-with-icon">
+          <input id="official-password" type="password" class="form-input form-input-with-trailing-icon" placeholder="Password" autocomplete="current-password">
+          <i class="fas fa-eye trailing-icon" id="official-toggle-password"></i>
+        </div>
+        <p id="official-login-msg" class="auth-alert"></p>
+        <button id="official-login-btn" class="main-login-btn w-full rounded-xl"><i class="fas fa-sign-in-alt"></i> Login Securely</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="official-app" class="hidden">
+    <header>
+      <div class="nav-container">
+        <div class="header-logo-box">
+          <img id="header-logo" src="assets/images/logo.png" alt="Logo" onerror="this.style.display='none'">
+        </div>
+        <div class="header-center-box">
+          <h1 id="header-title">Official Portal</h1>
+          <p id="header-subtitle"><span id="official-user-line">--</span></p>
+        </div>
+        <img id="header-logo-right" src="assets/images/logo.png" alt="Institution Logo" class="h-10 w-10 rounded-full object-cover border border-slate-200 shadow-sm mr-2" onerror="this.src='assets/images/logo.png'">
+        <button class="mobile-toggle" id="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" type="button">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-bars icon-bars"></i>
+            <i class="fas fa-times icon-close"></i>
+          </div>
+        </button>
+        <ul class="nav-menu" aria-label="Official navigation">
+          <li><a href="#dashboard" class="nav-link tab-link active" data-tab="dashboard"><i class="fas fa-chart-pie text-lg w-6"></i> Dashboard</a></li>
+          <li><a href="#students" class="nav-link tab-link" data-tab="students"><i class="fas fa-user-graduate text-lg w-6"></i> Students</a></li>
+          <li><a href="#summary" class="nav-link tab-link" data-tab="summary"><i class="fas fa-table text-lg w-6"></i> Class Summary</a></li>
+          <li><a href="#staff" class="nav-link tab-link" data-tab="staff"><i class="fas fa-users text-lg w-6"></i> Staff & Categories</a></li>
+          <li><a href="#home" class="nav-link tab-link" data-tab="home"><i class="fas fa-user-circle text-lg w-6"></i> Me</a></li>
+          <div class="border-t border-gray-100 my-1"></div>
+          <li><button id="official-logout-btn" class="login-btn-nav btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+        </ul>
+      </div>
+    </header>
+
+    <main id="app">
+      <div id="page-content">
+        <section id="official-tab-dashboard" class="official-tab page-content p-4"></section>
+        <section id="official-tab-students" class="official-tab page-content hidden p-4"></section>
+        <section id="official-tab-summary" class="official-tab page-content hidden p-4"></section>
+        <section id="official-tab-staff" class="official-tab page-content hidden p-4"></section>
+        <section id="official-tab-home" class="official-tab page-content hidden p-4"></section>
+      </div>
+    </main>
+
+    <div id="official-detail-modal" class="fixed inset-0 z-[1000] hidden items-center justify-center bg-slate-950/60 p-3" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="official-detail-title">
+      <div class="official-detail-dialog w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-200">
+        <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 bg-slate-50">
+          <div>
+            <h2 id="official-detail-title" class="text-lg font-extrabold text-slate-900">Details</h2>
+            <p class="text-xs font-semibold text-slate-500">Read-only official view</p>
+          </div>
+          <button id="official-detail-close" type="button" class="h-10 w-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-100" aria-label="Close details"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="official-detail-body" class="max-h-[calc(90vh-74px)] overflow-auto p-4"></div>
+      </div>
+    </div>
+    
+  </div>
+
+  <script type="module" src="./scripts/pages/official-page.js"></script>
+</body>
+</html>

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' https: data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://*.firebaseapp.com;">
+    <meta name="referrer" content="no-referrer">
+    <title>Result Management - Fee Tracker</title>
+    
+    <script src="scripts/shared/session-guard.js"></script>
+    <script>
+        window.AppSession?.guardStaffPageAccess?.('result');
+    </script>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="apple-touch-icon" href="assets/images/logo.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="antialiased text-gray-800 collection-shell">
+    <div id="loading-screen">
+        <div class="loader-wrapper">
+            <div class="logo-container">
+                <div class="circle-loader"></div>
+                <img id="splash-logo-img" src="assets/images/logo.png" alt="Logo">
+            </div>
+            <div class="loading-text">Initializing...</div>
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <header>
+        <div class="nav-container">
+            <div class="header-logo-box">
+                <img id="header-logo" src="assets/images/logo.png" alt="Logo" onerror="this.style.display='none'">
+            </div>
+            
+            <div class="header-center-box">
+                <h1 id="header-title">Result Management</h1>
+                <p id="header-subtitle" class="hidden"><span id="header-regno"></span> <span id="header-sep" class="mx-1 hidden">|</span> <span id="header-place"></span></p>
+            </div>
+
+            <button class="mobile-toggle" id="mobile-menu-btn" type="button">
+                <div class="menu-icon-wrapper">
+                    <i class="fas fa-bars icon-bars"></i>
+                    <i class="fas fa-times icon-close"></i>
+                </div>
+            </button>
+            
+            <ul class="nav-menu">
+                <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-lg shadow-sm mb-2 text-center">
+                    <div class="text-[10px] text-indigo-500 font-bold uppercase">Logged in as</div>
+                    <div id="staff-name-display" class="text-indigo-800 font-bold truncate text-sm">Loading...</div>
+                </div>
+                
+                <li class="text-[10px] uppercase tracking-wide text-slate-400 font-bold px-2 pt-1">Analytics</li>
+                <li><a href="#dashboard" class="nav-link tab-link active" data-target="dashboard-page"><i class="fas fa-tachometer-alt text-lg w-6"></i> Dashboard</a></li>
+                <li class="text-[10px] uppercase tracking-wide text-slate-400 font-bold px-2 pt-2">Configuration</li>
+                <li data-role-scope="admin-only"><a href="#settings" class="nav-link tab-link" data-target="settings-page"><i class="fas fa-sliders-h text-lg w-6"></i> Publish Controls</a></li>
+                <li data-role-scope="admin-only"><a href="#subjects" class="nav-link tab-link" data-target="subjects-page"><i class="fas fa-book text-lg w-6"></i> Subjects & Exams</a></li>
+                <li data-role-scope="admin-only"><a href="#grades" class="nav-link tab-link" data-target="grades-page"><i class="fas fa-list-check text-lg w-6"></i> Grade Rules</a></li>
+                <li class="text-[10px] uppercase tracking-wide text-slate-400 font-bold px-2 pt-2">Operations</li>
+                <li><a href="#marks" class="nav-link tab-link" data-target="marks-page"><i class="fas fa-edit text-lg w-6"></i> Marks Entry</a></li>
+                <li data-role-scope="admin-only"><a href="#draft" class="nav-link tab-link" data-target="draft-page"><i class="fas fa-file text-lg w-6"></i> Draft</a></li>
+                <li data-role-scope="admin-only"><a href="#published" class="nav-link tab-link" data-target="published-page"><i class="fas fa-check-circle text-lg w-6"></i> Published</a></li>
+                <li class="text-[10px] uppercase tracking-wide text-slate-400 font-bold px-2 pt-2">Admin Tools</li>
+                <li data-role-scope="admin-only"><a href="#promotion" class="nav-link tab-link" data-target="promotion-page"><i class="fas fa-arrow-up text-lg w-6"></i> Class Promotion</a></li>
+                <li data-role-scope="admin-only"><a href="#snapshot" class="nav-link tab-link" data-target="snapshot-page"><i class="fas fa-download text-lg w-6"></i> Snapshot Export</a></li>
+                <li><a href="collection.html" class="nav-link text-gray-600"><i class="fas fa-wallet text-lg w-6"></i> Fee Collection</a></li>
+                
+                <div class="border-t border-gray-100 my-1"></div>
+                <li><button id="logout-btn" class="login-btn-nav btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </div>
+    </header>
+
+    <main id="app">
+        <div id="result-fatal-error" class="hidden container mt-4">
+            <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm font-semibold">
+                Something went wrong while loading Result Management. Please refresh and try again.
+            </div>
+        </div>
+        <!-- Access Denied Block -->
+        <div id="access-denied-block" class="hidden container text-center pt-20">
+            <i class="fas fa-lock text-5xl text-red-400 mb-4"></i>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
+            <p class="text-gray-500 mb-6">ഈ പേജ് ഉപയോഗിക്കാൻ താങ്കൾക്ക് അഡ്മിൻ പെർമിഷൻ ആവശ്യമാണ്.</p>
+            <button onclick="window.location.href='collection.html'" class="btn-primary py-2 px-6 rounded-lg font-bold">Go Back</button>
+        </div>
+
+        <div id="page-content" class="hidden">
+            
+            <!-- 1. Dashboard -->
+            <section id="dashboard-page" class="page-content">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <h2 class="text-xl font-bold text-gray-800">Result Dashboard</h2>
+                    <div id="academic-year-badge" class="bg-indigo-100 text-indigo-800 font-bold px-3 py-1 rounded-lg text-sm border border-indigo-200">Loading...</div>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gradient-to-br from-indigo-600 to-indigo-500 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h2 class="text-xs font-bold text-indigo-100 uppercase tracking-wider mb-1">Classes</h2>
+                            <div class="text-3xl font-bold font-mono" id="dash-total-classes">0</div>
+                        </div>
+                        <i class="fas fa-file-alt text-5xl opacity-20 absolute right-4 bottom-2"></i>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-emerald-600 to-emerald-500 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h2 class="text-xs font-bold text-emerald-100 uppercase tracking-wider mb-1">Students</h2>
+                            <div class="text-3xl font-bold font-mono" id="dash-total-students">0</div>
+                        </div>
+                        <i class="fas fa-users text-5xl opacity-20 absolute right-4 bottom-2"></i>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h2 class="text-xs font-bold text-amber-100 uppercase tracking-wider mb-1">Status</h2>
+                            <div class="text-xl font-bold mt-1" id="dash-publish-status">Loading</div>
+                        </div>
+                        <i class="fas fa-broadcast-tower text-5xl opacity-20 absolute right-4 bottom-2"></i>
+                    </div>
+                    <div class="bg-gradient-to-br from-violet-600 to-violet-500 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h2 class="text-xs font-bold text-violet-100 uppercase tracking-wider mb-1">Pass %</h2>
+                            <div class="text-3xl font-bold font-mono" id="dash-pass-percent">0%</div>
+                        </div>
+                        <i class="fas fa-chart-line text-5xl opacity-20 absolute right-4 bottom-2"></i>
+                    </div>
+                </div>
+                <div class="card p-4 rounded-xl shadow-sm mb-6">
+                    <div class="flex items-center justify-between text-sm font-semibold text-gray-700 mb-2"><span>Academic Year Result Health</span><span id="dash-health-label">0%</span></div>
+                    <div class="w-full bg-gray-200 rounded-full h-3"><div id="dash-health-bar" class="bg-emerald-500 h-3 rounded-full transition-all duration-300" style="width:0%"></div></div>
+                </div>
+
+                <div class="card p-5 rounded-2xl shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Recent Exams</h3>
+                    <div id="dash-recent-exams" class="space-y-3">
+                        <p class="text-gray-500 text-sm italic">Loading...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Exam Setup -->
+            <section id="subjects-page" class="page-content hidden">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <h2 class="text-xl font-bold text-gray-800">Subjects & Exams</h2>
+                </div>
+                <div class="card p-5 shadow-sm mb-4">
+                    <div class="flex flex-wrap gap-4 border-b pb-4 mb-4">
+                        <label class="inline-flex items-center gap-2 font-bold text-sm text-indigo-700">
+                            <input type="radio" name="setup-mode" value="subjects" class="setup-mode-radio" checked> Add Subject
+                        </label>
+                        <label class="inline-flex items-center gap-2 font-bold text-sm text-indigo-700">
+                            <input type="radio" name="setup-mode" value="exams" class="setup-mode-radio"> Add Exam
+                        </label>
+                    </div>
+
+                    <div id="subject-setup-panel" class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Class</label>
+                            <select id="subject-class-select" class="w-full p-2.5 border rounded-lg bg-white"></select>
+                        </div>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="p-2 text-left">Subject</th>
+                                        <th class="p-2 text-left">Total Mark</th>
+                                        <th class="p-2 text-left">Pass Mark</th>
+                                        <th class="p-2 text-left w-14"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subject-rows-body"></tbody>
+                            </table>
+                            <div class="p-3 border-t bg-gray-50">
+                                <button id="subject-add-row-btn" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-lg">+ Add Row</button>
+                            </div>
+                        </div>
+                        <div class="text-right"><button id="save-subject-schema-btn" class="btn-primary py-2 px-5 rounded-lg font-bold">Save Subjects</button></div>
+                    </div>
+
+                    <div id="exam-setup-panel" class="hidden grid grid-cols-1 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Class</label>
+                            <select id="exam-config-class-select" class="w-full p-2.5 border rounded-lg bg-white"></select>
+                            <p class="text-xs text-gray-500 mt-1">Quarterly, Half-Yearly and Annual exams are always available by default and cannot be edited here. Add only extra class-specific exams such as Class Test or Monthly Exam.</p>
+                        </div>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="p-2 text-left min-w-[180px]">Exam Name</th>
+                                        <th class="p-2 text-left">Subjects</th>
+                                        <th class="p-2 text-left w-14"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="exam-config-rows-body"></tbody>
+                            </table>
+                            <div class="p-3 border-t bg-gray-50">
+                                <button id="exam-config-add-row-btn" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-lg">+ Add Row</button>
+                            </div>
+                        </div>
+                        <div class="text-right"><button id="save-exam-config-btn" class="btn-primary py-2 px-5 rounded-lg font-bold">Save Exams</button></div>
+                    </div>
+                </div>
+
+                <div class="card p-4 shadow-sm mb-4">
+                    <label class="block text-sm font-semibold mb-1">View Saved Items by Class</label>
+                    <select id="schema-list-class-filter" class="w-full md:w-72 p-2.5 border rounded-lg bg-white">
+                        <option value="">All Classes</option>
+                    </select>
+                </div>
+                <div id="exam-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Saved subject and exam cards will be loaded here -->
+                </div>
+            </section>
+
+            <!-- 3. Marks Entry -->
+            <section id="marks-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm mb-4">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Marks Entry</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Select Class <span class="text-red-500">*</span></label>
+                            <select id="entry-class-select" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-indigo-400 focus:bg-white outline-none">
+                                <option value="">-- Choose Class --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Select Exam <span class="text-red-500">*</span></label>
+                            <select id="entry-exam-select" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-indigo-400 focus:bg-white outline-none">
+                                <option value="">-- Choose Exam --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4 border rounded-xl p-3 bg-amber-50/40 border-amber-200">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <button id="marks-template-csv-btn" class="px-3 py-2 rounded bg-white border font-bold text-xs">⬇ Download CSV Template</button>
+                            <button id="marks-template-xlsx-btn" class="px-3 py-2 rounded bg-white border font-bold text-xs">⬇ Download XLSX Template</button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <input type="file" id="marks-bulk-file" accept=".csv,.xlsx,.xls" class="border p-2 rounded bg-white text-xs">
+                            <button id="marks-bulk-upload-btn" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold">Upload Bulk Marks</button>
+                        </div>
+                        <p id="marks-bulk-status" class="text-xs text-gray-600 mt-2">Select class and exam, then download template or upload completed file.</p>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2 overflow-hidden"><div id="marks-bulk-progress" class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width:0%"></div></div>
+                    </div>
+                </div>
+
+                <div id="marks-entry-container" class="hidden card shadow-sm overflow-hidden border-t-4 border-indigo-500">
+                    <div class="bg-gray-50 p-4 border-b flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-gray-800" id="entry-table-title">Class Marks</h3>
+                            <p class="text-xs text-gray-500" id="entry-table-subtitle">Subject-wise marks</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 justify-end">
+                            <button id="save-draft-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition flex items-center gap-2">
+                                <i class="fas fa-file"></i> Save as Draft
+                            </button>
+                            <button id="save-publish-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition flex items-center gap-2">
+                                <i class="fas fa-upload"></i> Publish
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto p-0">
+                        <table class="w-full text-sm text-left whitespace-nowrap">
+                            <thead id="marks-table-head" class="bg-gray-100 text-gray-600 font-bold uppercase text-xs">
+                                <!-- Dynamic Headers -->
+                            </thead>
+                            <tbody id="marks-table-body" class="divide-y divide-gray-200">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="marks-validation-note" class="px-4 py-3 text-xs font-semibold text-red-600 hidden">Invalid marks detected. Values greater than Total Mark are not allowed.</div>
+                </div>
+            </section>
+
+            <!-- 4. Reports & Publish -->
+            <section id="settings-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm mb-6 border-l-4 border-amber-500">
+                    <h2 class="text-xl font-bold mb-2 text-gray-800">Publish Controls</h2>
+                    <p class="text-sm text-gray-600 mb-4">റിസൾട്ട് പബ്ലിഷ് ചെയ്താൽ മാത്രമേ വിദ്യാർത്ഥികൾക്ക് അവരുടെ പോർട്ടലിൽ റിസൾട്ട് കാണാൻ സാധിക്കൂ.</p>
+                    
+                    <div class="space-y-3 bg-gray-50 p-4 rounded-lg border">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1 text-gray-700">Academic Year</label>
+                                <select id="publish-academic-year" class="w-full p-2.5 border rounded-lg bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1 text-gray-700">Select Exam</label>
+                                <select id="publish-exam-select" class="w-full p-2.5 border rounded-lg bg-white"></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Exam Name (Display)</label>
+                            <input type="text" id="publish-title" class="w-full p-2.5 border rounded-lg bg-white" placeholder="Enter exam name for students">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Publish Date & Time</label>
+                            <input type="datetime-local" id="publish-at-input" class="w-full p-2.5 border rounded-lg bg-white">
+                        </div>
+                        <div id="publish-live-status" class="text-xs font-semibold text-slate-600 bg-white border rounded-lg p-3">Live status will appear here.</div>
+                        <div class="flex flex-wrap items-center gap-4 text-sm">
+                            <label class="flex items-center gap-2"><input type="radio" name="publish-action" value="publish_now" checked>Publish Now</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="publish-action" value="auto_publish">Auto Publish by Time</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="publish-action" value="hide">Hide Results</label>
+                            <button id="run-publish-action-btn" class="bg-indigo-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg">Run Action</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-5 shadow-sm mb-4 border-l-4 border-red-500">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800">Block Access</h2>
+                    <div id="blocked-classes-list" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                    <button id="save-blocked-classes-btn" class="btn-primary mt-3 py-2 px-5 rounded-lg font-bold">Save</button>
+                </div>
+                <div class="card p-5 shadow-sm">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Generate Report Cards</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Academic Year</label>
+                            <select id="report-academic-year" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-indigo-400 focus:bg-white outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Select Class</label>
+                            <select id="report-class-select" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-indigo-400 focus:bg-white outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Select Exam</label>
+                            <select id="report-exam-select" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-indigo-400 focus:bg-white outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">PDF Order</label>
+                            <select id="report-order-select" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-indigo-400 focus:bg-white outline-none">
+                                <option value="rank">Rank Order</option>
+                                <option value="admission">Admission No Order</option>
+                                <option value="gender">Boys First, then Girls</option>
+                                <option value="alpha">Alphabetical Order</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="report-preview-summary" class="text-sm text-slate-600 mb-3 bg-slate-50 border rounded-lg p-3">Select year, class and exam to preview result availability.</div>
+                    <div class="text-right">
+                        <button id="generate-class-report-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition flex items-center gap-2 inline-flex">
+                            <i class="fas fa-file-pdf"></i> Download Class PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card p-5 shadow-sm mt-4 border-l-4 border-indigo-500">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800">Academic Settings</h2>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button id="open-schema-carryforward-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg font-bold">Copy Previous Year Subjects</button>
+                    </div>
+                    <div id="schema-carryforward-list" class="space-y-2 text-sm text-gray-600"></div>
+                </div>
+                <div class="card p-5 shadow-sm mt-4 border-l-4 border-emerald-500">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800">Student Result Visibility</h2>
+                    <p class="text-sm text-gray-600 mb-3">Uncheck class/exam if mark & grade should be hidden in student page.</p>
+                    <div id="result-visibility-grid" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+                    <button id="save-result-visibility-btn" class="btn-primary mt-3 py-2 px-5 rounded-lg font-bold">Save Visibility</button>
+                </div>
+            </section>
+
+            <section id="grades-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm mb-4">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800 border-b pb-2">Grade Rules</h2>
+                    <select id="grade-scale-select" class="w-full p-2 border rounded-lg mb-3">
+                        <option value="100">100 Mark Scale</option>
+                        <option value="50">50 Mark Scale</option>
+                    </select>
+                    <div id="grade-rules-rows" class="space-y-2"></div>
+                    <div class="mt-3 flex gap-2">
+                        <button id="add-grade-rule-row-btn" class="bg-indigo-100 text-indigo-700 font-bold px-3 py-2 rounded">Add Rule</button>
+                        <button id="save-grade-rules-btn" class="btn-primary py-2 px-5 rounded-lg font-bold">Save Grade Rules</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="published-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800 border-b pb-2">Published Results</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                        <button id="published-select-toggle-btn" class="bg-slate-100 text-slate-700 font-bold px-4 py-2 rounded-lg">Select All</button>
+                        <select id="published-class-filter" class="w-full p-2 border rounded-lg bg-white"></select>
+                        <select id="published-exam-filter" class="w-full p-2 border rounded-lg bg-white"></select>
+                        <select id="published-order-filter" class="w-full p-2 border rounded-lg bg-white">
+                            <option value="admission">Admission No Order</option>
+                            <option value="alpha">Alphabetical Order</option>
+                            <option value="rank">Rank</option>
+                            <option value="gender">Boys First, then Girls</option>
+                            <option value="mixed">Mixed</option>
+                        </select>
+                        <button id="published-bulk-delete-btn" class="bg-red-100 text-red-700 font-bold px-4 py-2 rounded-lg">Bulk Delete</button>
+                    </div>
+                    <div id="published-results-table" class="space-y-2"></div>
+                </div>
+            </section>
+
+            <section id="draft-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800 border-b pb-2">Draft Results</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                        <button id="draft-select-toggle-btn" class="bg-slate-100 text-slate-700 font-bold px-4 py-2 rounded-lg">Select All</button>
+                        <select id="draft-class-filter" class="w-full p-2 border rounded-lg bg-white"></select>
+                        <select id="draft-exam-filter" class="w-full p-2 border rounded-lg bg-white"></select>
+                        <select id="draft-order-filter" class="w-full p-2 border rounded-lg bg-white">
+                            <option value="admission">Admission No Order</option>
+                            <option value="alpha">Alphabetical Order</option>
+                            <option value="rank">Rank</option>
+                            <option value="gender">Boys First, then Girls</option>
+                            <option value="mixed">Mixed</option>
+                        </select>
+                        <button id="draft-bulk-publish-btn" class="bg-emerald-100 text-emerald-700 font-bold px-4 py-2 rounded-lg">Bulk Publish</button>
+                        <button id="draft-bulk-delete-btn" class="bg-red-100 text-red-700 font-bold px-4 py-2 rounded-lg">Bulk Delete</button>
+                    </div>
+                    <div id="draft-results-table" class="space-y-2"></div>
+                </div>
+            </section>
+
+            <section id="snapshot-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800 border-b pb-2">Snapshot Export</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="export-snapshot-all-btn" class="btn-primary py-2 px-5 rounded-lg font-bold">Export snapshot.json</button>
+                        <button id="export-snapshot-classwise-btn" class="bg-indigo-100 text-indigo-700 py-2 px-5 rounded-lg font-bold">Export Class-wise</button>
+                    </div>
+                </div>
+            </section>
+            <section id="promotion-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800 border-b pb-2">Promotion (Annual)</h2>
+                    <p class="text-sm text-gray-600 mb-3">Annual published result based class promotion.</p>
+                    <div class="mb-3">
+                        <h3 class="text-sm font-bold text-gray-800 mb-2">Class Progression Mapping</h3>
+                        <div id="promotion-map-list" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+                        <button id="save-promotion-map-btn" class="bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg font-bold mt-3">Save Mapping</button>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <button id="preview-promotion-btn" class="bg-amber-100 text-amber-700 py-2 px-4 rounded-lg font-bold">Preview Promotion</button>
+                    </div>
+                    <div id="promotion-preview-list" class="space-y-2 mb-3"></div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <select id="promotion-target-year" class="p-2 border rounded-lg bg-white min-w-[180px]"></select>
+                        <button id="run-auto-promotion-btn" class="bg-emerald-600 text-white py-2 px-5 rounded-lg font-bold">Run Auto Promotion</button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="exam-modal" class="modal-overlay">
+        <div class="modal-box w-full max-w-lg">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2 text-left" id="exam-modal-title">Create Exam</h3>
+            
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Exam Name</label>
+                    <input type="text" id="exam-name" class="w-full p-2.5 border rounded-lg bg-gray-50" placeholder="e.g. First Terminal">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Total Max Marks</label>
+                        <select id="exam-max" class="w-full p-2.5 border rounded-lg bg-gray-50">
+                            <option value="100">100</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Total Pass Marks</label>
+                        <input type="number" id="exam-pass" class="w-full p-2.5 border rounded-lg bg-gray-50" placeholder="e.g. 18">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2 flex justify-between">
+                        <span>Subjects</span>
+                        <button id="add-subject-btn" class="text-xs text-indigo-600 font-bold hover:underline">+ Add Subject</button>
+                    </label>
+                    <div id="subject-list" class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scroll border p-2 rounded-lg bg-gray-50">
+                        <!-- Subject inputs added dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+                <button id="exam-cancel" class="px-5 py-2.5 rounded-lg bg-gray-200 font-semibold text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button id="exam-save" class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-bold shadow-md hover:bg-indigo-700">Save Exam</button>
+            </div>
+        </div>
+    </div>
+    <div id="visibility-modal" class="modal-overlay hidden">
+        <div class="modal-box w-full max-w-md">
+            <h3 class="text-lg font-bold mb-3" id="visibility-modal-title">Result Visibility</h3>
+            <div id="visibility-modal-body" class="space-y-2"></div>
+            <div class="flex justify-end gap-2 mt-4">
+                <button id="visibility-modal-close" class="px-4 py-2 rounded bg-gray-200">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-edit-modal" class="modal-overlay hidden">
+        <div class="modal-box w-full max-w-xl">
+            <h3 class="text-xl font-bold mb-2 text-gray-900 border-b pb-2 text-left">Edit Student Result</h3>
+            <div class="text-left text-sm text-gray-600 mb-4" id="result-edit-summary">Student result</div>
+            <div id="result-edit-fields" class="space-y-3 text-left max-h-[55vh] overflow-y-auto pr-2 custom-scroll"></div>
+            <div id="result-edit-error" class="hidden mt-3 text-sm font-semibold text-red-600 text-left"></div>
+            <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+                <button id="result-edit-cancel" class="px-5 py-2.5 rounded-lg bg-gray-200 font-semibold text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button id="result-edit-save" class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-bold shadow-md hover:bg-indigo-700">Save Result</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="scripts/pages/result-page.js"></script>
+
+</body>
+</html>

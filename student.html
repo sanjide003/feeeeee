@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' https: data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://*.firebaseapp.com;">
+    <meta name="referrer" content="no-referrer">
+    <title>Student Dashboard - Fee Tracker</title>
+    
+    <script src="scripts/shared/session-guard.js"></script>
+    <script>
+        window.AppSession?.guardStudentPage();
+    </script>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="apple-touch-icon" href="assets/images/logo.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Global CSS Link -->
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="student-shell">
+    <div id="loading-screen">
+        <div class="loader-wrapper">
+            <div class="logo-container">
+                <div class="circle-loader"></div>
+                <img id="splash-logo-img" src="assets/images/logo.png" alt="Logo">
+            </div>
+            <div class="loading-text">Initializing...</div>
+        </div>
+    </div>
+
+    <!-- Unified Header Matches Public Page -->
+    <header>
+        <div class="nav-container flex justify-between items-center w-full h-full px-4">
+            <div class="header-logo-box">
+                <img id="header-logo" src="assets/images/logo.png" alt="Logo" onerror="this.style.display='none'">
+            </div>
+            
+            <div class="header-center-box absolute left-1/2 -translate-x-1/2 w-[50%] text-center">
+                <h1 id="header-title">Student Dashboard</h1>
+                <p id="header-subtitle" class="hidden"><span id="header-regno"></span> <span id="header-sep" class="mx-1 hidden">|</span> <span id="header-place"></span></p>
+            </div>
+
+            <div class="flex items-center gap-3 relative z-[1001] ml-auto">
+                <!-- Notification Bell -->
+                <button id="student-notify-trigger" class="relative text-slate-600 hover:text-blue-600 transition p-2 focus:outline-none rounded-full hover:bg-slate-50">
+                    <i class="fas fa-bell text-[22px]"></i>
+                    <span id="student-notify-badge" class="absolute top-[2px] right-[2px] bg-red-500 text-white text-[9px] font-bold px-1.5 py-[2px] rounded-full border-2 border-white shadow-sm hidden"></span>
+                </button>
+
+                <!-- Hamburger Toggle Icon -->
+                <button class="mobile-toggle" id="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" type="button">
+                    <div class="menu-icon-wrapper">
+                        <i class="fas fa-bars icon-bars"></i>
+                        <i class="fas fa-times icon-close"></i>
+                    </div>
+                </button>
+            </div>
+            
+            <ul class="nav-menu" aria-label="Primary navigation">
+                <li><a href="index.html" class="nav-link student-public-nav-link"><i class="fas fa-home text-lg w-6"></i> Home</a></li>
+                <li><a href="index.html#about" class="nav-link student-public-nav-link"><i class="fas fa-circle-info text-lg w-6"></i> About</a></li>
+                <li><a href="index.html#teachers" class="nav-link student-public-nav-link"><i class="fas fa-chalkboard-teacher text-lg w-6"></i> Teachers</a></li>
+                <li><a href="index.html#notices" class="nav-link student-public-nav-link"><i class="fas fa-bullhorn text-lg w-6"></i> Notices</a></li>
+                <li><a href="index.html#gallery" class="nav-link student-public-nav-link"><i class="fas fa-images text-lg w-6"></i> Gallery</a></li>
+                <div class="border-t border-gray-100 my-1"></div>
+                <li><a href="#home" class="nav-link tab-link active" data-target="home-page"><i class="fas fa-id-badge text-lg w-6"></i> My Profile</a></li>
+                <li><a href="#fees" class="nav-link tab-link" data-target="fees-page"><i class="fas fa-file-invoice-dollar text-lg w-6"></i> Fee Details</a></li>
+                <li id="results-nav-item"><a href="#results" class="nav-link tab-link" data-target="results-page"><i class="fas fa-square-poll-vertical text-lg w-6"></i> <span>Results</span></a></li>
+                <div class="border-t border-gray-100 my-1"></div>
+                <li><button id="student-public-btn" class="login-btn-nav bg-slate-100 hover:bg-slate-200 text-slate-700"><i class="fas fa-home"></i> Public Page</button></li>
+                <li><button id="student-logout-btn" class="login-btn-nav btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </div>
+    </header>
+
+    <main>
+        <!-- 1. PROFILE TAB (ID CARD) -->
+        <section id="home-page" class="page-content">
+            <div class="id-card">
+                <div class="id-card-header">
+                    <h3 class="text-lg font-bold" id="id-school-name">Institution Name</h3>
+                    <p class="text-xs opacity-80" id="id-school-sub">Excellence in Education</p>
+                </div>
+                <div class="id-avatar-wrapper">
+                    <div class="id-avatar" id="dash-avatar"><i class="fas fa-user"></i></div>
+                </div>
+                <h2 class="id-name" id="dash-name">-</h2>
+                <div class="id-class" id="dash-class">Class: -</div>
+                
+                <div class="id-details">
+                    <div class="id-info-group"><div class="id-label">Adm No</div><div class="id-value" id="dash-adm">-</div></div>
+                    <div class="id-info-group"><div class="id-label">Gender</div><div class="id-value" id="dash-gender">-</div></div>
+                    <div class="id-info-group"><div class="id-label">UID No</div><div class="id-value" id="dash-uid">-</div></div>
+                    <div class="id-info-group"><div class="id-label">Father's Name</div><div class="id-value" id="dash-father">-</div></div>
+                    <div class="id-info-group"><div class="id-label">Contact</div><div class="id-value" id="dash-mobile">-</div></div>
+                    <!-- Dynamically Hidden/Shown Concession Box -->
+                    <div class="id-info-group hidden" id="dash-conc-group" style="background: #ecfdf5; border-color: #a7f3d0;"><div class="id-label" style="color: #047857;">Fee Concession</div><div class="id-value" style="color: #059669;" id="dash-conc"></div></div>
+                    <!-- Address Info -->
+                    <div class="id-info-group" style="grid-column: 1 / -1;"><div class="id-label">Address</div><div class="id-value" style="font-size: 12px;" id="dash-addr">-</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. FEES TAB -->
+        <section id="fees-page" class="page-content hidden">
+            <div class="content-card">
+                <h2 class="text-xl font-bold mb-1 text-gray-800"><i class="fas fa-receipt text-accent mr-2"></i> Fee Details</h2>
+                <p class="text-xs text-gray-500 font-semibold mb-4">Click on a fee block to view full details.</p>
+                <div class="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 gap-3">
+                    <div>
+                        <div id="fee-class-label" class="text-base sm:text-lg font-bold text-blue-800">Class: --</div>
+                    </div>
+                    <select id="fee-year-select" class="min-w-[150px] p-2 rounded-lg border border-blue-200 text-sm font-semibold text-blue-800 bg-white"></select>
+                </div>
+                
+                <!-- Categorized Fee Grids Injected Here -->
+                <div id="fee-sections-container"></div>
+                
+                <!-- Summary Totals Block in One Line -->
+                <div id="fee-summary"></div>
+                <div id="fee-status-insights" class="mt-4"></div>
+            </div>
+        </section>
+
+        <!-- 4. RESULTS TAB -->
+        <section id="results-page" class="page-content hidden">
+            <div class="content-card">
+                <h2 class="text-xl font-bold mb-1 text-gray-800"><i class="fas fa-poll text-accent mr-2"></i> Exam Results</h2>
+                <div class="mb-4 flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 gap-3">
+                    <div class="text-center">
+                        <div id="results-year-label" class="text-sm font-bold text-indigo-800">Academic Year: --</div>
+                        <div id="results-class-label" class="text-[11px] font-semibold text-indigo-600">Class: --</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="results-year-select" class="min-w-[130px] p-2 rounded-lg border border-indigo-200 text-sm font-semibold text-indigo-800 bg-white"></select>
+                        <select id="results-exam-select" class="min-w-[130px] p-2 rounded-lg border border-indigo-200 text-sm font-semibold text-indigo-800 bg-white"></select>
+                    </div>
+                </div>
+                <div id="results-container"></div>
+            </div>
+        </section>
+    </main>
+
+    <nav id="student-bottom-nav" class="hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-40">
+        <div class="grid grid-cols-4 text-xs font-bold text-gray-600">
+            <button class="py-2 student-bottom-nav-btn" data-action="public"><i class="fas fa-home block text-base mb-1"></i>Public</button>
+            <button class="py-2 student-bottom-nav-btn" data-target="fees-page"><i class="fas fa-receipt block text-base mb-1"></i>Fees</button>
+            <button id="results-bottom-btn" class="py-2 student-bottom-nav-btn" data-target="results-page"><i class="fas fa-square-poll-vertical block text-base mb-1"></i><span>Results</span></button>
+            <button class="py-2 student-bottom-nav-btn" id="bottom-profile-btn" data-target="home-page"><i class="fas fa-id-badge block text-base mb-1"></i>Profile</button>
+        </div>
+    </nav>
+
+    <div id="student-account-switcher" class="fixed inset-0 bg-slate-900/55 backdrop-blur-[1px] hidden items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-md p-5 sm:p-6 animate-[fadeIn_.18s_ease-out]">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-extrabold text-lg text-slate-800 tracking-tight">Student Accounts</h3>
+                <button id="close-account-switcher" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="student-account-list" class="space-y-2.5 max-h-72 overflow-y-auto pr-1"></div>
+            <div class="mt-4 border-t border-slate-100 pt-3 flex justify-end gap-2">
+                <button id="account-switcher-add-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Add</button>
+                <button id="account-switcher-logout-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm">Logout Current</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION SLIDE PANEL (Glassmorphism Pattern) -->
+    <div id="student-notify-backdrop" class="fixed inset-0 z-[899] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+    <div id="student-notify-panel" class="student-notify-dropdown">
+        <div class="student-notify-head">
+            <h3><i class="fas fa-bell text-blue-600"></i>Notifications</h3>
+            <div class="student-notify-actions">
+                <button id="student-notify-mark-all" type="button">Mark all read</button>
+                <button id="student-notify-close" type="button" aria-label="Close notifications"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div id="student-notify-list" class="student-notify-list custom-scrollbar">
+            <!-- Notifications injected dynamically -->
+        </div>
+    </div>
+    <div id="student-detail-modal" class="fixed inset-0 bg-slate-900/55 hidden items-center justify-center z-[10000] p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg">
+            <div class="flex items-center justify-between p-4 border-b border-slate-100">
+                <h3 id="student-detail-modal-title" class="text-base font-extrabold text-slate-800">Details</h3>
+                <button id="student-detail-modal-close" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="student-detail-modal-body" class="p-4 text-sm text-slate-700 max-h-[65vh] overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="follow-title">FOLLOW US</div>
+        <div class="socials">
+            <a href="#" id="link-youtube" target="_blank" class="hidden"><i class="fa-brands fa-youtube"></i></a>
+            <a href="#" id="link-telegram" target="_blank" class="hidden"><i class="fa-brands fa-telegram-plane"></i></a>
+            <a href="#" id="link-instagram" target="_blank" class="hidden"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#" id="link-whatsapp" target="_blank" class="hidden"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="#" id="link-facebook" target="_blank" class="hidden"><i class="fa-brands fa-facebook-f"></i></a>
+        </div>
+        <div class="corporate">
+           <a href="#" id="footer-email-link"><i class="fas fa-envelope"></i> <span id="footer-email">Email</span></a>
+           <a href="#" id="footer-phone-link"><i class="fas fa-phone"></i> <span id="footer-phone">Phone</span></a>
+        </div>
+        <div class="divider"></div>
+        <div class="copy">© <span id="footer-inst-name">Institution Name</span>. All Rights Reserved.</div>
+        <div class="powered">Developed by <a href="https://www.instagram.com/muhammed_sanjide_p" target="_blank">HADI MAHIRI FAIZY</a></div>
+        <div class="app-version-meta">
+            <div id="footer-version">Version: --</div>
+            <div id="footer-updated">Last Updated: --</div>
+        </div>
+    </footer>
+
+    <script type="module" src="scripts/pages/student-page.js"></script>
+</body>
+</html>

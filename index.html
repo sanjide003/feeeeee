@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' https: data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://*.firebaseapp.com;">
+    <meta name="referrer" content="no-referrer">
+    <title>Noorul Islam Higher Secondary Madrasa</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="apple-touch-icon" href="assets/images/logo.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="scripts/shared/session-guard.js"></script>
+    
+    <!-- Global CSS Link -->
+    <link rel="stylesheet" href="styles/main.css">
+    
+</head>
+<body style="background-color: #ffffff;">
+    <div id="splash-screen">
+        <div class="loader-wrapper"><div class="logo-container"><div class="circle-loader"></div><img id="splash-logo-img" src="" alt=""></div><div class="loading-text">Initializing...</div></div>
+    </div>
+
+    <header>
+        <div class="nav-container">
+            <div class="header-logo-box">
+                <img id="header-logo" src="assets/images/logo.png" alt="Logo" onerror="this.style.display='none'">
+            </div>
+            
+            <div class="header-center-box">
+                <h1 id="header-title">Institution</h1>
+                <p id="header-subtitle" class="hidden"><span id="header-regno"></span> <span id="header-sep" class="mx-1 hidden">|</span> <span id="header-place"></span></p>
+            </div>
+
+            <!-- Hamburger Icon Animated -->
+            <button class="mobile-toggle" id="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" type="button">
+                <div class="menu-icon-wrapper">
+                    <i class="fas fa-bars icon-bars"></i>
+                    <i class="fas fa-times icon-close"></i>
+                </div>
+            </button>
+            
+            <ul class="nav-menu" aria-label="Primary navigation">
+                <li><a href="#" onclick="window.scrollTo(0,0)" class="nav-link">Home</a></li>
+                <li><a href="#about" class="nav-link" onclick="smoothScrollTo(event, 'about-container')">About</a></li>
+                <li id="nav-teachers-link" class="hidden"><a href="#teachers" class="nav-link" onclick="smoothScrollTo(event, 'teachers-container')">Teachers</a></li>
+                <li id="nav-management-link" class="hidden"><a href="#management" class="nav-link" onclick="smoothScrollTo(event, 'management-container')">Management</a></li>
+                <li id="nav-dynamic-directory-links" class="hidden"></li>
+                <li id="nav-notices-link" class="hidden"><a href="#notices" class="nav-link" onclick="smoothScrollTo(event, 'notices-container')">Notices</a></li>
+                <li id="nav-gallery-link" class="hidden"><a href="#gallery" class="nav-link" onclick="smoothScrollTo(event, 'gallery-container')">Gallery</a></li>
+                <li id="install-app-container" class="hidden"><button id="install-app-btn" class="install-btn-nav"><i class="fas fa-download"></i> Install App</button></li>
+                <li><button onclick="window.openLogin()" class="login-btn-nav"><i class="fas fa-sign-in-alt mr-1"></i> Login</button></li>
+            </ul>
+        </div>
+    </header>
+
+    <section class="hero" id="hero-section">
+        <div class="hero-logo-target visible" id="hero-logo-target">
+            <img id="hero-logo-img" src="assets/images/logo.png" alt="Hero Logo" onerror="this.style.display='none'">
+        </div>
+        
+        <div class="hero-title-container">
+            <h1 id="hero-main-title">Institution Name</h1>
+        </div>
+        
+        <p id="hero-subtitle" class="subtitle">Excellence in Education</p>
+        <p class="inst-info"><span id="hero-regno"></span> <span id="hero-place-separator" class="hidden"> | </span> <span id="hero-place"></span></p>
+        
+        <div class="hero-actions-wrapper">
+            <button onclick="window.openLogin()" class="main-login-btn">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            
+            <div class="secondary-actions">
+                <a href="#teachers" class="compact-btn hidden" id="hero-btn-teachers" onclick="smoothScrollTo(event, 'teachers-container')">
+                    <i class="fas fa-chalkboard-teacher icon-teachers"></i> Teachers
+                </a>
+                <a href="#notices" class="compact-btn hidden" id="hero-btn-notice" onclick="smoothScrollTo(event, 'notices-container')">
+                    <i class="fas fa-bell icon-notices"></i> Notices
+                </a>
+                <a href="#gallery" class="compact-btn hidden" id="hero-btn-gallery" onclick="smoothScrollTo(event, 'gallery-container')">
+                    <i class="fas fa-images icon-gallery"></i> Gallery
+                </a>
+            </div>
+        </div>
+
+        <section class="stats-grid">
+            <div class="stat-card stat-blue"><div><div class="stat-title">STUDENTS</div><div class="stat-count" id="stat-total">-</div></div><div class="stat-icon"><i class="fa-solid fa-users"></i></div></div>
+            <div class="stat-card stat-yellow"><div><div class="stat-title">TEACHERS</div><div class="stat-count" id="stat-staff">-</div></div><div class="stat-icon"><i class="fa-solid fa-chalkboard-user"></i></div></div>
+            <div class="stat-card stat-green"><div><div class="stat-title">MALE</div><div class="stat-count" id="stat-male">-</div></div><div class="stat-icon"><i class="fa-solid fa-person"></i></div></div>
+            <div class="stat-card stat-teal"><div><div class="stat-title">FEMALE</div><div class="stat-count" id="stat-female">-</div></div><div class="stat-icon"><i class="fa-solid fa-person-dress"></i></div></div>
+        </section>
+    </section>
+
+    <div class="container" id="about-container">
+        <div class="section-header"><h3>About Us</h3><div></div></div>
+        <div class="about-box"><p id="about-desc">Loading description...</p></div>
+    </div>
+
+    <div class="container hidden" id="teachers-container">
+        <div class="section-header"><h3 class="section-heading-pill">Teachers</h3><div></div></div>
+        <div class="scroll-wrapper" id="teachers-list"></div>
+    </div>
+
+    <div class="container hidden" id="management-container">
+        <div class="section-header">
+            <button type="button" id="management-toggle-btn" class="accordion-heading-btn section-heading-pill" onclick="window.togglePublicAccordion('management-accordion')">
+                <span>Management</span>
+                <i class="fas fa-chevron-down text-sm" data-accordion-icon="management-accordion"></i>
+            </button>
+            <div></div>
+        </div>
+        <div id="management-accordion" data-accordion-content class="hidden mt-3">
+            <div class="scroll-wrapper" id="comm-list"></div>
+        </div>
+    </div>
+
+    <div class="container hidden" id="dynamic-directory-container">
+        <div id="dynamic-directory-sections" class="space-y-6"></div>
+    </div>
+
+    <!-- Notices Section -->
+    <div class="container hidden" id="notices-container">
+        <div class="section-header"><h3>Notifications</h3><div></div></div>
+        <div id="notices-list" class="notice-grid notice-grid-scroll"></div>
+    </div>
+
+    <!-- Gallery Section -->
+    <div class="container hidden" id="gallery-container">
+        <div class="section-header"><h3>Gallery</h3><div></div></div>
+        <div id="gallery-list" class="gallery-swipe-container"></div>
+    </div>
+
+    <!-- Compact Footer -->
+    <footer class="footer">
+        <div class="follow-title">FOLLOW US</div>
+        <div class="socials">
+            <a href="#" id="link-youtube" target="_blank" class="hidden"><i class="fa-brands fa-youtube"></i></a>
+            <a href="#" id="link-telegram" target="_blank" class="hidden"><i class="fa-brands fa-telegram-plane"></i></a>
+            <a href="#" id="link-instagram" target="_blank" class="hidden"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#" id="link-whatsapp" target="_blank" class="hidden"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="#" id="link-facebook" target="_blank" class="hidden"><i class="fa-brands fa-facebook-f"></i></a>
+        </div>
+        <div class="corporate">
+           <a href="#" id="footer-email-link"><i class="fas fa-envelope"></i> <span id="footer-email">Email</span></a>
+           <a href="#" id="footer-phone-link"><i class="fas fa-phone"></i> <span id="footer-phone">Phone</span></a>
+        </div>
+        <div class="divider"></div>
+        <div class="copy">© <span id="footer-inst-name">Institution Name</span>. All Rights Reserved.</div>
+        <div class="powered">Developed by <a href="https://www.instagram.com/muhammed_sanjide_p" target="_blank">HADI MAHIRI FAIZY</a></div>
+        <div class="app-version-meta">
+            <div id="footer-version">Version: --</div>
+            <div id="footer-updated">Last Updated: --</div>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-box">
+            <button type="button" class="modal-close-btn" aria-label="Close login modal" onclick="document.getElementById('login-modal').style.display='none'">&times;</button>
+            <div class="icon-badge"><i class="fas fa-lock"></i></div>
+            <h3 id="login-title" class="modal-title">Student Login</h3>
+            
+            <div id="student-login-form">
+                <select id="login-class" class="form-input"><option value="">Select Class</option></select>
+                <div class="input-with-icon">
+                    <input type="text" id="login-student-name" class="form-input form-input-tight" placeholder="Search Name or Adm No" autocomplete="off">
+                    <div id="student-suggestions" class="suggestions-box"></div>
+                </div>
+                <div class="input-with-icon">
+                    <input type="password" id="login-phone" class="form-input form-input-with-trailing-icon" placeholder="Password (Mobile Number)">
+                    <i class="fas fa-eye trailing-icon" id="toggle-student-pass"></i>
+                </div>
+            </div>
+
+            <p id="login-msg" class="auth-alert"></p>
+            <button id="login-submit" class="main-login-btn w-full rounded-xl"><i class="fas fa-sign-in-alt"></i> Login Securely</button>
+
+        </div>
+    </div>
+
+    <div id="saved-student-modal" class="modal-overlay">
+        <div class="modal-box">
+            <button type="button" class="modal-close-btn" aria-label="Close saved account modal" onclick="document.getElementById('saved-student-modal').style.display='none'">&times;</button>
+            <div class="icon-badge"><i class="fas fa-user-check"></i></div>
+            <h3 class="modal-title">Select Student Account</h3>
+            <div id="saved-student-list" class="space-y-2 mt-3 max-h-56 overflow-y-auto"></div>
+            <button id="saved-student-add-btn" class="main-login-btn w-full rounded-xl mt-3"><i class="fas fa-plus"></i> Add New Student</button>
+        </div>
+    </div>
+
+    <!-- Person Modal -->
+    <div id="person-modal" class="modal-overlay">
+        <div class="modal-box person-modal-box">
+            <button type="button" class="modal-close-btn modal-close-btn-top" aria-label="Close person modal" onclick="document.getElementById('person-modal').style.display='none'">&times;</button>
+            <img id="modal-img" src="" class="person-avatar">
+            <h3 id="modal-name" class="person-name person-modal-name"></h3>
+            <p id="modal-role" class="person-role person-modal-role"></p>
+            
+            <div class="person-meta">
+                <p class="person-meta-line"><i class="fas fa-map-marker-alt person-meta-icon"></i> <span class="person-meta-label">Place:</span> <span id="modal-address"></span></p>
+                <p class="person-meta-phone"><i class="fas fa-phone person-meta-icon"></i> <span class="person-meta-label">Phone:</span> <span id="modal-phone"></span></p>
+            </div>
+            <a id="modal-whatsapp-btn" class="modal-whatsapp-btn" target="_blank" rel="noopener noreferrer" aria-label="Send WhatsApp message">
+                <i class="fa-brands fa-whatsapp"></i>
+            </a>
+        </div>
+    </div>
+
+    <div id="notice-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-box notice-modal-box">
+            <button type="button" class="modal-close-btn" aria-label="Close notice modal" id="close-notice-modal">&times;</button>
+            <h3 id="notice-modal-title" class="modal-title mb-2">Notification</h3>
+            <p id="notice-modal-date" class="notice-date mb-3"></p>
+            <div id="notice-modal-body" class="notice-modal-body"></div>
+        </div>
+    </div>
+
+    <div id="img-modal" class="modal-overlay" aria-hidden="true">
+        <button type="button" id="gallery-prev-btn" class="gallery-modal-nav gallery-modal-prev" aria-label="Previous gallery image"><i class="fas fa-chevron-left"></i></button>
+        <div class="modal-box gallery-modal-box"><img id="zoom-img" src="" alt="Gallery image preview"></div>
+        <button type="button" id="gallery-next-btn" class="gallery-modal-nav gallery-modal-next" aria-label="Next gallery image"><i class="fas fa-chevron-right"></i></button>
+    </div>
+    <script type="module" src="scripts/pages/index-page.js"></script>
+</body>
+</html>

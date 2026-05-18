@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' https: data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://*.firebaseapp.com;">
+    <meta name="referrer" content="no-referrer">
+    <title>Fee Collection - Fee Tracker</title>
+    
+    <script src="scripts/shared/session-guard.js"></script>
+    <script>
+        window.AppSession?.guardStaffOrAdminPage();
+    </script>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="apple-touch-icon" href="assets/images/logo.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Excel & CSV Parsing Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- ഗ്ലോബൽ CSS ലിങ്ക് -->
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="antialiased text-gray-800 collection-shell">
+    <div id="loading-screen">
+        <div class="loader-wrapper">
+            <div class="logo-container">
+                <div class="circle-loader"></div>
+                <img id="splash-logo-img" src="assets/images/logo.png" alt="Logo">
+            </div>
+            <div class="loading-text">Initializing...</div>
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <header>
+        <div class="nav-container">
+            <div class="header-logo-box">
+                <img id="header-logo" src="assets/images/logo.png" alt="Logo" onerror="this.style.display='none'">
+            </div>
+            
+            <div class="header-center-box">
+                <h1 id="header-title">Fee Collection</h1>
+                <p id="header-subtitle" class="hidden"><span id="header-regno"></span> <span id="header-sep" class="mx-1 hidden">|</span> <span id="header-place"></span></p>
+            </div>
+
+            <!-- Hamburger Icon -->
+            <button class="mobile-toggle" id="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" type="button">
+                <div class="menu-icon-wrapper">
+                    <i class="fas fa-bars icon-bars"></i>
+                    <i class="fas fa-times icon-close"></i>
+                </div>
+            </button>
+            
+            <!-- Nav Menu -->
+            <ul class="nav-menu" aria-label="Primary navigation">
+                <div class="bg-blue-50 border border-blue-100 p-3 rounded-lg shadow-sm mb-2 text-center">
+                    <div class="text-[10px] text-blue-500 font-bold uppercase">Logged in as</div>
+                    <div id="staff-name-display" class="text-blue-800 font-bold truncate text-sm">Loading...</div>
+                </div>
+                
+                <li><a href="#dashboard" class="nav-link tab-link active" data-target="dashboard-page"><i class="fas fa-tachometer-alt text-lg w-6"></i> Dashboard</a></li>
+                <li><a href="#home" id="nav-fee-entry" class="nav-link tab-link nav-highlight-fee" data-target="home-page"><i class="fas fa-edit text-lg w-6"></i> Fee Entry</a></li>
+                <li><a href="#bulk-upload" class="nav-link tab-link" data-target="bulk-upload-page"><i class="fas fa-file-excel text-lg w-6"></i> Bulk Upload</a></li>
+                <li><a href="#donation" class="nav-link tab-link" data-target="donation-page"><i class="fas fa-hand-holding-heart text-lg w-6"></i> Donation Entry</a></li>
+                <li><a href="#history" id="nav-history" class="nav-link tab-link nav-highlight-history" data-target="history-page"><i class="fas fa-history text-lg w-6"></i> History</a></li>
+                <li><a href="#fee" class="nav-link tab-link" data-target="fee-page"><i class="fas fa-list text-lg w-6"></i> Fee Status</a></li>
+                <li><a href="#conc-group" class="nav-link tab-link" data-target="conc-group-page"><i class="fas fa-users-viewfinder text-lg w-6"></i> Concession & Group</a></li>
+                <li><a href="#monthly" id="nav-monthly" class="nav-link tab-link nav-highlight-monthly" data-target="monthly-collected-page"><i class="fas fa-chart-bar text-lg w-6"></i> Monthly Report</a></li>
+                <li id="collector-wise-monthly-tab" class="hidden"><a href="#collector-wise" class="nav-link tab-link" data-target="collector-wise-monthly-page"><i class="fas fa-users text-lg w-6"></i> Collector-wise Monthly Total</a></li>
+                <li><a href="#students" class="nav-link tab-link" data-target="students-page"><i class="fas fa-user-graduate text-lg w-6"></i> Students</a></li>
+                <li><a href="#my-class" class="nav-link tab-link" data-target="my-class-page"><i class="fas fa-school text-lg w-6"></i> My Class</a></li>
+                <li id="result-nav-item" class="hidden"><a href="result.html?from=collection" class="nav-link text-gray-700"><i class="fas fa-poll text-lg w-6"></i> Result Management</a></li>
+                
+                <div class="border-t border-gray-100 my-1"></div>
+                <li><a href="#" id="open-tab-settings-btn" class="nav-link text-gray-600"><i class="fas fa-sliders-h text-lg w-6"></i> Settings</a></li>
+                <li><a href="#" id="open-profile-btn" class="nav-link text-gray-600"><i class="fas fa-user-circle text-lg w-6"></i> My Profile</a></li>
+                <li><button id="logout-btn" class="login-btn-nav btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </div>
+    </header>
+
+    <main id="app">
+        <div id="page-content">
+            
+            <!-- Dashboard -->
+            <section id="dashboard-page" class="page-content">
+                <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2 px-2">Overview</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden flex justify-between items-center">
+                        <div class="relative z-10">
+                            <h2 class="text-xs font-bold text-blue-100 uppercase tracking-wider mb-1">Today's Collection</h2>
+                            <div class="text-3xl font-bold font-mono">₹<span id="dash-today-amt">0</span></div>
+                        </div>
+                        <i class="fas fa-calendar-day text-5xl opacity-20 transform translate-x-2 absolute right-4"></i>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-green-600 to-green-500 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden flex justify-between items-center">
+                        <div class="relative z-10">
+                            <h2 class="text-xs font-bold text-green-100 uppercase tracking-wider mb-1">This Month</h2>
+                            <div class="text-3xl font-bold font-mono">₹<span id="dash-month-amt">0</span></div>
+                        </div>
+                        <i class="fas fa-chart-line text-5xl opacity-20 transform translate-x-2 absolute right-4"></i>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl"><i class="fas fa-users"></i></div>
+                        <div>
+                            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Students</h2>
+                            <div class="text-2xl font-bold text-gray-800" id="dash-students-count">0</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-2xl"><i class="fas fa-file-invoice"></i></div>
+                        <div>
+                            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Receipts Today</h2>
+                            <div class="text-2xl font-bold text-gray-800" id="dash-today-receipts">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-6">
+                    <button id="new-fee-entry-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-md transition inline-flex items-center gap-2">
+                        <i class="fas fa-plus-circle"></i> New Fee Entry
+                    </button>
+                </div>
+            </section>
+
+            <section id="conc-group-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 border-b pb-3">
+                        <h2 class="text-xl font-bold text-gray-800">Concession & Group Overview</h2>
+                        <div class="flex gap-2">
+                            <select id="conc-group-year-select" class="p-2.5 rounded-lg border bg-white text-sm font-semibold"></select>
+                            <button id="conc-group-download-pdf-btn" class="py-2 px-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow text-sm"><i class="fas fa-file-pdf mr-1"></i>PDF</button>
+                        </div>
+                    </div>
+                    <div id="conc-group-summary" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4"></div>
+                    <div id="conc-group-content" class="space-y-4"></div>
+                </div>
+            </section>
+
+            <!-- 2. Fee Entry Page -->
+            <section id="home-page" class="page-content hidden">
+                <div id="fee-entry-card" class="card p-5 mb-6 shadow-sm transition-all duration-300">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-5 border-b pb-2 gap-3"><h2 id="fee-entry-title" class="text-xl font-bold text-gray-800">Fee Entry</h2>
+                        <div class="flex items-center gap-2 ml-auto whitespace-nowrap">
+                            <label for="multi-entry-toggle" class="text-sm font-semibold text-gray-700">Multiple Entry</label>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input id="multi-entry-toggle" type="checkbox" class="sr-only peer">
+                                <span class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-green-500 transition"></span>
+                                <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="multi-entry-panel" class="hidden mb-4 p-3 rounded-xl border border-blue-200 bg-blue-50">
+                        <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+                            <div id="multi-entry-count" class="text-sm font-bold text-blue-800">0 students queued for same receipt</div>
+                            <div class="flex gap-2">
+                                <button id="add-multi-student-btn" type="button" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">+ Add Student</button>
+                                <button id="clear-multi-students-btn" type="button" class="px-3 py-2 rounded-lg bg-slate-200 text-slate-700 text-sm font-bold">Clear</button>
+                            </div>
+                        </div>
+                        <div id="multi-entry-list" class="mt-3 space-y-2"></div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-semibold mb-1 text-gray-700">Class</label><select id="entry-class" class="w-full p-2.5 rounded-lg"></select></div>
+                            <div><label class="block text-sm font-semibold mb-1 text-gray-700">Gender</label><select id="entry-gender" class="w-full p-2.5 rounded-lg"><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Student</label>
+                            <div class="relative" id="student-combobox-container">
+                                <input type="text" id="entry-student-input" class="w-full p-2.5 pr-10 rounded-lg" placeholder="Type name or Adm No..." autocomplete="off">
+                                <button id="entry-student-clear-btn" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 hidden" title="Clear student input"><i class="fas fa-times text-xs"></i></button>
+                                <div id="student-suggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl hidden max-h-60 overflow-y-auto"></div>
+                            </div>
+                            <div id="grouped-students-panel" class="hidden mt-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1 text-gray-700 flex justify-between">
+                                    <span>Receipt No. <span id="receipt-req-star" class="text-red-500 font-bold hidden">*</span></span>
+                                    <span class="text-[10px] text-gray-400 font-normal">(Auto)</span>
+                                </label>
+                                <input type="number" id="entry-receipt" class="w-full p-2.5 font-mono text-lg font-bold text-blue-700 rounded-lg" placeholder="Number">
+                            </div>
+                            <div><label class="block text-sm font-semibold mb-1 text-gray-700">Date</label><input type="date" id="entry-date" class="w-full p-2.5 rounded-lg"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <label class="block text-sm font-semibold mb-2 text-gray-700">Fee Items</label>
+                        <div id="fee-year-switcher" class="hidden mb-3 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <button id="fee-year-prev-btn" class="w-8 h-8 rounded-md bg-white border border-blue-200 text-blue-700 font-bold hover:bg-blue-100" type="button">&lt;</button>
+                                    <span id="fee-year-prev-label" class="text-[11px] font-semibold text-blue-700 whitespace-nowrap">--</span>
+                                </div>
+                                <div id="fee-year-label" class="text-base sm:text-lg font-extrabold text-emerald-700">--</div>
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span id="fee-year-next-label" class="text-[11px] font-semibold text-blue-700 whitespace-nowrap">--</span>
+                                    <button id="fee-year-next-btn" class="w-8 h-8 rounded-md bg-white border border-blue-200 text-blue-700 font-bold hover:bg-blue-100" type="button">&gt;</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="fee-due-notice" class="hidden mb-3 text-xs font-semibold rounded-lg border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2"></div>
+                        <div id="fee-item-selection-container" class="grid grid-cols-3 gap-2 mt-2">
+                            <div class="col-span-3 text-center text-xs font-semibold text-gray-400 py-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">Search and select a student first</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5"><label class="block text-sm font-semibold mb-1 text-gray-700">Description (Optional)</label><textarea id="entry-description" rows="2" class="w-full p-2.5 rounded-lg"></textarea></div>
+                    <div class="mt-6 pt-5 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="w-full sm:w-auto">
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Total Amount (₹)</label>
+                            <input type="number" id="total-amount" class="p-2.5 w-full sm:w-32 font-mono text-xl font-bold text-green-700 bg-green-50 border border-green-300 rounded-lg text-center focus:ring-2 focus:ring-green-400 focus:outline-none" value="0">
+                        </div>
+                        <div id="action-buttons-container" class="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                            <button id="cancel-edit-btn" class="bg-gray-200 text-gray-800 font-bold py-2.5 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition hidden flex-grow sm:flex-grow-0">Cancel</button>
+                            <button id="update-fee-btn" class="bg-amber-500 text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:bg-amber-600 transition hidden flex-grow sm:flex-grow-0">Update</button>
+                            <button id="save-fee-btn" class="btn-primary font-bold py-2.5 px-8 rounded-lg shadow-md text-lg w-full sm:w-auto">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2.1 Bulk Upload Page -->
+            <section id="bulk-upload-page" class="page-content hidden">
+                <div class="card p-5 mb-6 shadow-sm border-blue-200 bg-blue-50/30">
+                    <div class="flex justify-between items-center mb-4 border-b border-blue-200 pb-2">
+                        <h2 class="text-xl font-bold text-blue-900"><i class="fas fa-download text-blue-600 mr-2"></i>1. Download Template</h2>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">Select an academic year and class to download a pre-filled Excel (.xlsx) template for those students. The first row will be a sample entry.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Academic Year <span class="mandatory-star">*</span></label>
+                            <select id="bulk-academic-year" class="w-full p-2.5 border rounded-lg bg-white"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Target Class <span class="mandatory-star">*</span></label>
+                            <select id="bulk-class" class="w-full p-2.5 border rounded-lg bg-white"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-700">Default Fee Amount (₹) <span class="mandatory-star">*</span></label>
+                            <input type="number" id="bulk-default-fee" class="w-full p-2.5 border rounded-lg bg-white" placeholder="e.g. 200">
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <button id="bulk-download-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition inline-flex items-center gap-2">
+                            <i class="fas fa-file-excel"></i> Download Excel Template
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card p-5 shadow-sm border-green-200 bg-green-50/20">
+                    <div class="flex justify-between items-center mb-4 border-b border-green-200 pb-2">
+                        <h2 class="text-xl font-bold text-green-900"><i class="fas fa-upload text-green-600 mr-2"></i>2. Upload Data</h2>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">Fill the downloaded template and upload it here. Supported formats: <b>.xlsx, .xls, .csv</b>.</p>
+                    
+                    <div class="upload-area" id="bulk-drop-zone">
+                        <input type="file" id="bulk-file-input" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="hidden">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-green-500 mb-3"></i>
+                        <p class="font-semibold text-gray-700">Click to select or drag and drop your Excel/CSV here</p>
+                    </div>
+
+                    <div id="bulk-preview-area" class="mt-4 hidden p-4 bg-white border rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center mb-3 border-b pb-2">
+                            <span class="font-bold text-gray-800" id="bulk-file-name">filename.xlsx</span>
+                            <span class="text-sm font-bold bg-green-100 text-green-800 px-3 py-1 rounded-full" id="bulk-record-count">Found 0 records</span>
+                        </div>
+                        
+                        <!-- Progress Area -->
+                        <div id="bulk-progress-container" class="hidden">
+                            <div class="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                                <span id="bulk-progress-text">Processing...</span>
+                                <span id="bulk-progress-pct">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2 overflow-hidden">
+                                <div id="bulk-progress-bar" class="bg-green-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-right">
+                            <button id="bulk-cancel-btn" class="px-5 py-2.5 bg-gray-200 text-gray-700 font-bold rounded-lg mr-2 hover:bg-gray-300 transition">Cancel</button>
+                            <button id="bulk-start-upload-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition inline-flex items-center gap-2">
+                                <i class="fas fa-cogs"></i> Start Processing
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Fee Status Page -->
+            <section id="fee-page" class="page-content hidden">
+                <div class="card p-4 mb-5 shadow-sm">
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-semibold mb-1 text-gray-700">Class</label><select id="filter-class" class="w-full p-2.5 rounded-lg"><option value="all">All Classes</option></select></div>
+                        <div><label class="block text-sm font-semibold mb-1 text-gray-700">Gender</label><select id="filter-gender" class="w-full p-2.5 rounded-lg"><option value="all">All Genders</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                    </div>
+                </div>
+                <div class="card p-0 shadow-sm overflow-hidden">
+                    <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
+                         <h2 id="fee-status-title-header" class="text-lg font-bold text-gray-800">Fee Status</h2>
+                         <button id="fee-download-pdf-btn" class="py-1.5 px-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow flex items-center gap-2 text-sm transition"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                    </div>
+                    <div id="fee-table-container" class="overflow-x-auto p-4 custom-scroll max-h-[70vh]"></div>
+                </div>
+            </section>
+
+            <!-- 4. History Page -->
+            <section id="history-page" class="page-content hidden">
+                <div class="card p-0 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <h2 class="text-lg font-bold text-gray-800">Payment History</h2>
+                            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded" id="history-count-badge">Loading...</span>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <div class="relative w-full sm:w-48">
+                                <input type="text" id="history-search-input" placeholder="Search history..." class="w-full p-2 pl-8 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:border-blue-500">
+                                <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            </div>
+                            <select id="history-staff-filter" class="p-2 border border-gray-300 rounded-lg text-sm bg-white hidden w-full sm:w-48 outline-none focus:border-blue-500">
+                                <option value="all">All Collections</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="history-content-container" class="overflow-x-auto custom-scroll max-h-[65vh] p-4 relative">
+                        <table class="w-full text-sm text-left whitespace-nowrap">
+                            <thead class="table-header">
+                                <tr><th class="p-3">Rcpt</th><th class="p-3">Date</th><th class="p-3">Student</th><th class="p-3">Collected By</th><th class="p-3 text-center">Items</th><th class="p-3">Total</th><th class="p-3 text-center">Actions</th></tr>
+                            </thead>
+                            <tbody id="history-content-tbody" class="divide-y divide-gray-200">
+                            </tbody>
+                        </table>
+                        <div id="history-loading-indicator" class="hidden text-center py-4 text-gray-500 font-bold text-sm">
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Loading more...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. Monthly Collected Page -->
+            <section id="monthly-collected-page" class="page-content hidden">
+                 <div class="card p-5 shadow-sm">
+                     <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Monthly Report</h2>
+                     <div id="monthly-report-summary" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5"></div>
+                     <div class="relative mb-5">
+                        <input type="text" id="monthly-collected-search-input" placeholder="Search by name, adm no or receipt..." class="w-full p-3 pl-10 border rounded-lg shadow-sm bg-gray-50">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                     <div class="flex flex-col sm:flex-row gap-3 mb-5">
+                        <button id="monthly-report-download-btn" class="btn-primary font-bold py-3 px-5 rounded-xl shadow-md inline-flex items-center justify-center gap-2">
+                            <i class="fas fa-file-csv"></i> Download CSV Summary
+                        </button>
+                        <div class="text-xs text-gray-500 font-medium flex items-center">
+                            Filter by student name, admission number, class, or receipt to update the report and export.
+                        </div>
+                     </div>
+                     <div id="monthly-collected-container" class="space-y-4"></div>
+                 </div>
+            </section>
+
+            <section id="donation-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Donation Entry</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-semibold mb-1 text-gray-700">Donor Name</label><input type="text" id="donation-name" class="w-full p-2.5 rounded-lg" placeholder="Name"></div>
+                        <div><label class="block text-sm font-semibold mb-1 text-gray-700">Receipt No (Optional)</label><input type="number" id="donation-receipt" class="w-full p-2.5 rounded-lg" placeholder="Receipt number"></div>
+                        <div><label class="block text-sm font-semibold mb-1 text-gray-700">Amount (₹)</label><input type="number" id="donation-amount" class="w-full p-2.5 rounded-lg" placeholder="Amount"></div>
+                        <div><label class="block text-sm font-semibold mb-1 text-gray-700">Date</label><input type="date" id="donation-date" class="w-full p-2.5 rounded-lg"></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-semibold mb-1 text-gray-700">Description</label><textarea id="donation-description" rows="3" class="w-full p-2.5 rounded-lg" placeholder="Donation details"></textarea></div>
+                    </div>
+                    <div class="mt-4 flex items-center gap-3">
+                        <button id="save-donation-btn" class="btn-primary font-bold py-2.5 px-5 rounded-lg shadow-md">Save Donation</button>
+                        <span id="donation-save-msg" class="text-xs font-semibold text-emerald-700"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="collector-wise-monthly-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Collector-wise Monthly Total</h2>
+                    <p class="text-xs text-gray-500 font-medium mb-4">Admin view: monthly split by collector with default fee and other fee totals.</p>
+                    <div id="collector-wise-monthly-container" class="space-y-4"></div>
+                </div>
+            </section>
+
+            <!-- 5.1 My Class Duty -->
+            <section id="my-class-page" class="page-content hidden">
+                <div class="card p-5 shadow-sm">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800 border-b pb-2">My Class Duty</h2>
+                    <p class="text-xs text-gray-500 font-semibold mb-4">നിങ്ങളുടെ ചുമതലയിലുള്ള ക്ലാസുകൾ ഇവിടെ തിരഞ്ഞെടുക്കാം. ഈ ക്ലാസുകളിലെ കുട്ടികൾക്ക് ലോഗിൻ ചെയ്യുമ്പോൾ നിങ്ങളുടെ പേയ്‌മെന്റ് വിവരങ്ങൾ കാണാൻ സാധിക്കും.</p>
+                    <div id="my-class-list" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+                    <div class="mt-4 border-t pt-4">
+                        <h3 class="text-sm font-bold text-gray-700 mb-2">Duty Class Payment Account (UPI Details)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <input type="text" id="duty-pay-account-name" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-blue-400 focus:bg-white transition" placeholder="Account Holder Name">
+                            <input type="text" id="duty-pay-upi-number" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-blue-400 focus:bg-white transition" placeholder="GPay / PhonePe Number">
+                            <input type="text" id="duty-pay-upi-id" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:border-blue-400 focus:bg-white transition" placeholder="UPI ID (eg: name@okicici)">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center gap-3">
+                        <button id="save-my-class-btn" class="btn-primary font-bold py-2.5 px-6 rounded-lg shadow-md transition-transform hover:scale-105">
+                            <i class="fas fa-save mr-2"></i> Save Details
+                        </button>
+                        <span id="my-class-save-msg" class="text-sm font-bold text-emerald-600 transition-opacity duration-300"></span>
+                    </div>
+                    <div class="mt-6 border-t pt-4">
+                        <h3 class="text-sm font-bold text-gray-700 mb-2">Staff Directory</h3>
+                        <p class="text-xs text-gray-500 mb-3">മറ്റ് സ്റ്റാഫുകളും അവർ ഏറ്റെടുത്ത ക്ലാസുകളും.</p>
+                        <div id="collection-staff-directory" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. Student Info Page -->
+            <section id="students-page" class="page-content hidden">
+                <div class="card p-4 shadow-sm mb-5">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Student Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div><label class="block text-xs font-bold text-gray-500 uppercase">Class</label><select id="stu-info-class" class="w-full p-2.5 mt-1 rounded-lg"><option value="">-- Select --</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-500 uppercase">Gender</label><select id="stu-info-gender" class="w-full p-2.5 mt-1 rounded-lg"><option value="all">All</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-500 uppercase">Search</label><div class="relative mt-1"><input type="text" id="stu-info-search" placeholder="Name or Adm No..." class="w-full p-2.5 pl-8 rounded-lg"><i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i></div></div>
+                    </div>
+                </div>
+                <div id="stu-info-empty" class="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-gray-500">Select a Class to view students.</div>
+                <div id="stu-info-list" class="space-y-2 hidden"></div>
+            </section>
+
+        </div>
+    </main>
+
+    <nav id="collection-bottom-nav" class="collection-bottom-nav" aria-label="Collection quick navigation">
+        <a href="#dashboard" class="collection-bottom-nav-link tab-link" data-target="dashboard-page" data-bottom-nav="true"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+        <a href="#history" class="collection-bottom-nav-link tab-link" data-target="history-page" data-bottom-nav="true"><i class="fas fa-history"></i><span>History</span></a>
+        <a href="#home" class="collection-bottom-nav-link collection-bottom-nav-link-fee tab-link" data-target="home-page" data-bottom-nav="true" aria-label="Fee Entry"><i class="fas fa-edit"></i><span>Fee Entry</span></a>
+        <a href="#monthly" class="collection-bottom-nav-link tab-link" data-target="monthly-collected-page" data-bottom-nav="true"><i class="fas fa-chart-bar"></i><span>Monthly</span></a>
+        <a href="#students" class="collection-bottom-nav-link tab-link" data-target="students-page" data-bottom-nav="true"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+    </nav>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="follow-title">FOLLOW US</div>
+        <div class="socials">
+            <a href="#" id="link-youtube" target="_blank" class="hidden"><i class="fa-brands fa-youtube"></i></a>
+            <a href="#" id="link-telegram" target="_blank" class="hidden"><i class="fa-brands fa-telegram-plane"></i></a>
+            <a href="#" id="link-instagram" target="_blank" class="hidden"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#" id="link-whatsapp" target="_blank" class="hidden"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="#" id="link-facebook" target="_blank" class="hidden"><i class="fa-brands fa-facebook-f"></i></a>
+        </div>
+        <div class="corporate">
+           <a href="#" id="footer-email-link"><i class="fas fa-envelope"></i> <span id="footer-email">Email</span></a>
+           <a href="#" id="footer-phone-link"><i class="fas fa-phone"></i> <span id="footer-phone">Phone</span></a>
+        </div>
+        <div class="divider"></div>
+        <div class="copy">© <span id="footer-inst-name">Institution Name</span>. All Rights Reserved.</div>
+        <div class="powered">Developed by <a href="https://www.instagram.com/muhammed_sanjide_p" target="_blank">HADI MAHIRI FAIZY</a></div>
+        <div class="app-version-meta">
+            <div id="footer-version">Version: --</div>
+            <div id="footer-updated">Last Updated: --</div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <div id="confirm-popup" class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2" id="confirm-title">Confirm</h3>
+            <div id="confirm-message" class="mb-6 text-left max-h-60 overflow-y-auto text-gray-700 text-sm"></div>
+            <div class="flex justify-end gap-3"><button id="confirm-cancel" class="px-5 py-2.5 rounded-lg bg-gray-200 font-semibold">Cancel</button><button id="confirm-ok" class="btn-primary px-5 py-2.5 rounded-lg font-bold shadow-md">OK</button></div>
+        </div>
+    </div>
+
+    <!-- My Profile Popup (Staff) -->
+    <div id="my-profile-popup" class="modal-overlay">
+        <div class="modal-box relative">
+            <button id="close-my-profile-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2 text-left">My Profile</h3>
+            
+            <img id="my-prof-img" src="https://via.placeholder.com/150" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-blue-50 shadow-md mb-4" onerror="this.src='assets/images/logo.png'">
+            <h2 id="my-prof-name" class="text-2xl font-bold text-gray-800">Name</h2>
+            <p id="my-prof-role" class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-5">Role</p>
+
+            <div class="space-y-3 text-left bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div class="flex justify-between items-center border-b pb-2"><span class="text-xs text-gray-500 font-bold uppercase"><i class="fas fa-envelope mr-1"></i> Email</span><span class="font-medium text-sm text-gray-800" id="my-prof-email"></span></div>
+                <div class="flex justify-between items-center border-b pb-2"><span class="text-xs text-gray-500 font-bold uppercase"><i class="fas fa-phone mr-1"></i> Phone</span><span class="font-medium text-sm text-gray-800" id="my-prof-phone"></span></div>
+                <div class="flex justify-between items-center border-b pb-2"><span class="text-xs text-gray-500 font-bold uppercase"><i class="fas fa-id-card mr-1"></i> MSR No</span><span class="font-medium text-sm text-gray-800" id="my-prof-msr"></span></div>
+                <div class="flex justify-between items-start"><span class="text-xs text-gray-500 font-bold uppercase"><i class="fas fa-map-marker-alt mr-1"></i> Address</span><span class="font-medium text-sm text-gray-800 text-right max-w-[60%]" id="my-prof-addr"></span></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="tab-settings-popup" class="modal-overlay">
+        <div class="modal-box relative max-w-md">
+            <button id="close-tab-settings-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold mb-2 text-gray-900 border-b pb-2 text-left">Menu Settings</h3>
+            <p class="text-xs text-gray-500 text-left mb-3">Choose which tabs appear in your side menu.</p>
+            <div id="tab-settings-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
+            <div class="mt-4 flex justify-end">
+                <button id="tab-settings-save-btn" class="btn-primary px-5 py-2.5 rounded-lg font-bold shadow-md">Save</button>
+            </div>
+        </div>
+    </div>
+    <!-- Student Profile Popup -->
+    <div id="student-profile-popup" class="modal-overlay">
+        <div class="modal-box relative max-w-md">
+            <button id="close-profile-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2 text-left">Student Profile</h3>
+            
+            <div class="space-y-3 mb-6 text-left">
+                <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-sm text-gray-500 font-medium">Name</span><span class="font-bold text-gray-800" id="prof-name"></span></div>
+                <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-sm text-gray-500 font-medium">Class</span><span class="font-bold text-gray-800" id="prof-class"></span></div>
+                <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-sm text-gray-500 font-medium">Gender</span><span class="font-bold text-gray-800" id="prof-gender"></span></div>
+                <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-sm text-gray-500 font-medium">Adm. No</span><span class="font-bold font-mono text-gray-800" id="prof-adm"></span></div>
+                <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-sm text-gray-500 font-medium">UID/ID</span><span class="font-bold text-gray-800" id="prof-uid"></span></div>
+                <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-sm text-gray-500 font-medium">Father's Name</span><span class="font-bold text-gray-800" id="prof-father"></span></div>
+                <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-sm text-gray-500 font-medium">Address</span><span class="font-bold text-gray-800 text-right max-w-[60%]" id="prof-addr"></span></div>
+                <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-sm text-gray-500 font-medium">Fee Concession</span><span class="font-bold text-green-600" id="prof-conc"></span></div>
+                <div id="prof-group-wrap" class="hidden rounded-xl border border-blue-100 bg-blue-50 p-3">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700">Group Members</span>
+                        <span id="prof-group-amount" class="text-xs font-bold text-blue-800 bg-white border border-blue-100 px-2 py-1 rounded-full"></span>
+                    </div>
+                    <div id="prof-group-members" class="space-y-1"></div>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
+                <p class="text-xs text-blue-600 font-bold uppercase tracking-wider mb-2">Registered Mobile</p>
+                <div class="text-xl font-bold font-mono text-gray-800 mb-3" id="prof-mobile"></div>
+                <a href="#" id="prof-call-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-md inline-flex items-center gap-2 transition transform hover:scale-105">
+                    <i class="fas fa-phone"></i> Call Student
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Logic Script (For Tabs & Menus) -->
+    <script type="module" src="scripts/pages/collection-page.js"></script>
+
+</body>
+</html>

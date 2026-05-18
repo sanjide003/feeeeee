@@ -1,0 +1,184 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // INTERNAL MODEL (plain staff password in Firestore):
+    // staff sessions may use anonymous Firebase auth.
+    // So authentication checks should rely on request.auth != null,
+    // while admin checks still rely on email-based auth.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasEmailIdentity() {
+      return isSignedIn() && request.auth.token.email != null;
+    }
+
+    function adminAuthRef(institutionId) {
+      return /databases/$(database)/documents/institutions/$(institutionId)/settings/adminAuth;
+    }
+
+    function adminData(institutionId) {
+      return get(adminAuthRef(institutionId)).data;
+    }
+
+    function isLegacyAdmin(institutionId) {
+      return exists(adminAuthRef(institutionId))
+        && adminData(institutionId).email == request.auth.token.email;
+    }
+
+    function isIndexedAdmin(institutionId) {
+      return exists(adminAuthRef(institutionId))
+        && adminData(institutionId).adminsIndex[request.auth.token.email] == true;
+    }
+
+    function isAdmin(institutionId) {
+      return hasEmailIdentity() && (isLegacyAdmin(institutionId) || isIndexedAdmin(institutionId));
+    }
+
+    function isCollectionSession() {
+      // Any authenticated session (including anonymous) is treated as internal collector session.
+      return isSignedIn();
+    }
+
+    function isResultOperator(institutionId) {
+      return hasResultStaffAccess(institutionId);
+    }
+
+    function staffAccessRef(institutionId) {
+      return /databases/$(database)/documents/institutions/$(institutionId)/staffAccess/$(request.auth.token.email);
+    }
+
+    function hasResultStaffAccess(institutionId) {
+      return hasEmailIdentity()
+        && exists(staffAccessRef(institutionId))
+        && get(staffAccessRef(institutionId)).data.isActive != false
+        && (
+          get(staffAccessRef(institutionId)).data.result == true
+          || get(staffAccessRef(institutionId)).data.canManageResults == true
+        );
+    }
+
+    match /institutions/{institutionId}/settings/{docId} {
+      allow read: if true;
+      // FIX: Added permission for sessionRegistry so that Collection Session Heartbeat works without errors
+      allow write: if isAdmin(institutionId)
+        || (isResultOperator(institutionId) && docId == 'resultCenter')
+        || (isCollectionSession() && docId == 'sessionRegistry');
+    }
+
+    match /institutions/{institutionId}/staff/{docId} {
+      allow read: if true;
+      allow create, delete: if isAdmin(institutionId);
+      
+      // FIX: Modified to allow updates via isCollectionSession() securely without needing email identity
+      allow update: if isAdmin(institutionId)
+        || (
+          isCollectionSession()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'dutyClasses',
+            'dutyPaymentDetails',
+            'updatedAt'
+          ])
+        );
+    }
+
+    match /institutions/{institutionId}/staffAccess/{docId} {
+      allow read: if isAdmin(institutionId);
+      allow write: if isAdmin(institutionId);
+    }
+
+    match /institutions/{institutionId}/students/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId) || isCollectionSession();
+    }
+
+    match /institutions/{institutionId}/studentGroups/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId) || isCollectionSession();
+    }
+
+    match /institutions/{institutionId}/payments/{docId} {
+      allow read: if isAdmin(institutionId) || isCollectionSession();
+      allow write: if isAdmin(institutionId) || isCollectionSession();
+    }
+
+    match /institutions/{institutionId}/donations/{docId} {
+      allow read, write: if isAdmin(institutionId) || isCollectionSession();
+    }
+
+    match /institutions/{institutionId}/publicDirectory/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId);
+    }
+
+    match /institutions/{institutionId}/directoryAuth/{docId} {
+      allow read, write: if isAdmin(institutionId);
+    }
+
+    match /institutions/{institutionId}/pageAccessOverrides/{docId} {
+      allow read, write: if isAdmin(institutionId);
+    }
+
+    match /institutions/{institutionId}/resultSchemas/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId) || isResultOperator(institutionId);
+    }
+
+    match /institutions/{institutionId}/examResults/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId) || isResultOperator(institutionId);
+    }
+
+    match /institutions/{institutionId}/promotionDecisions/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId) || isResultOperator(institutionId);
+    }
+
+    match /institutions/{institutionId}/studentPhotoSubmissions/{docId} {
+      allow read, write: if isAdmin(institutionId) || isCollectionSession();
+    }
+
+    match /institutions/{institutionId}/collectorPreferences/{docId} {
+      allow read, write: if isAdmin(institutionId) || isCollectionSession();
+    }
+
+    match /institutions/{institutionId}/academicYears/{yearId}/classes/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId);
+    }
+
+    match /institutions/{institutionId}/academicYears/{yearId}/enrollments/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId) || isCollectionSession();
+    }
+
+    match /institutions/{institutionId}/academicYears/{yearId}/feeItems/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId);
+    }
+
+    match /institutions/{institutionId}/academicYears/{yearId}/payments/{docId} {
+      allow read: if isAdmin(institutionId) || isCollectionSession();
+      allow write: if isAdmin(institutionId) || isCollectionSession();
+    }
+
+    match /institutions/{institutionId}/academicYears/{yearId}/results/{docId} {
+      allow read: if true;
+      allow write: if isAdmin(institutionId);
+    }
+
+    match /institutions/{institutionId}/auditLogs/{docId} {
+      allow read: if isAdmin(institutionId);
+      allow write: if isAdmin(institutionId);
+    }
+
+    match /institutions/{institutionId}/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

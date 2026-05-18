@@ -1,0 +1,21 @@
+{
+  "name": "Noorul Islam Madrasa",
+  "short_name": "Noorul Islam",
+  "description": "Noorul Islam Madrasa 4883 Official Application",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "assets/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

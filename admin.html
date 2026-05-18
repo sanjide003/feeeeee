@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' https: data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://*.firebaseapp.com;">
+    <meta name="referrer" content="no-referrer">
+    <title>Admin Dashboard - Fee Tracker</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="apple-touch-icon" href="assets/images/logo.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="scripts/shared/session-guard.js"></script>
+    <script>
+        window.AppSession?.guardAdminPage();
+    </script>
+    
+    <!-- നമ്മൾ നേരത്തെ നിർമ്മിച്ച Global CSS ലിങ്ക് ചെയ്യുന്നു -->
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="antialiased text-gray-800">
+
+    <div id="auth-loader">
+        <div class="loader-wrapper">
+            <div class="logo-container">
+                <div class="circle-loader"></div>
+                <img id="admin-loader-logo" src="assets/images/logo.png" alt="Logo">
+            </div>
+            <div class="loading-text">Initializing...</div>
+        </div>
+    </div>
+
+    <div id="admin-app" class="min-h-screen pb-16">
+        
+        <div class="sticky top-0 z-30 card shadow-sm rounded-none border-b border-gray-200 bg-white">
+            <header class="container mx-auto px-4 py-3 relative flex justify-between items-center h-16">
+                <button id="hamburger-btn" class="p-2 -ml-2 rounded-lg text-gray-600 hover:bg-gray-100 transition focus:outline-none"><i class="fas fa-bars text-xl"></i></button>
+                <div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 w-max">
+                    <img id="admin-header-logo" src="assets/images/logo.png" alt="Logo" class="w-8 h-8 rounded-md shadow-sm" onerror="this.style.display='none'">
+                    <div class="text-center sm:text-left"><h1 id="app-name-header" class="text-base sm:text-lg font-bold text-gray-900 leading-tight">Admin Dashboard</h1><p id="app-subtitle-header" class="text-[10px] sm:text-xs text-gray-500 font-medium hidden sm:block">Institute Management</p></div>
+                </div>
+                <div class="w-8"></div>
+            </header>
+        </div>
+
+        <div id="drawer-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 hidden opacity-0 transition-opacity duration-300"></div>
+        <aside id="side-drawer" class="fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-50 transform -translate-x-full flex flex-col">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50"><span class="font-bold text-lg text-gray-800">Main Menu</span><button id="close-drawer-btn" class="text-gray-500 hover:text-gray-800 p-1 rounded-md hover:bg-gray-200"><i class="fas fa-times text-xl"></i></button></div>
+            <nav class="flex-grow pb-4 space-y-1 overflow-y-auto">
+                <div class="drawer-heading">Institution</div>
+                <a href="#dashboard" class="nav-link drawer-link flex items-center gap-3 p-3 transition active"><i class="fas fa-chart-pie w-5 text-center"></i><span class="text-sm">Dashboard</span></a>
+                <a href="#academic-years" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-calendar-alt w-5 text-center"></i><span class="text-sm">Academic Years</span></a>
+                <a href="#manage-staff" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-chalkboard-teacher w-5 text-center"></i><span class="text-sm">Staff Management</span></a>
+                
+                <div class="drawer-heading">Student Management</div>
+                <a href="#add-students" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-user-plus w-5 text-center"></i><span class="text-sm">Add Students</span></a>
+                <a href="#manage-students" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-users-cog w-5 text-center"></i><span class="text-sm">Manage Students</span></a>
+                <a href="#manage-classes" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-chalkboard text-center w-5"></i><span class="text-sm">Classes & Divisions</span></a>
+                <a href="#manage-groups" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-layer-group w-5 text-center"></i><span class="text-sm">Student Groups</span></a>
+                <a href="result.html" class="nav-link drawer-link drawer-link-result flex items-center gap-3 p-3 transition"><i class="fas fa-poll w-5 text-center"></i><span class="text-sm font-bold">Result Management</span></a>
+                <a href="#fee-concessions" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-hand-holding-usd w-5 text-center"></i><span class="text-sm">Fee Concessions</span></a>
+                
+                <div class="drawer-heading">Finance</div>
+                <a href="collection.html" target="_blank" class="w-full flex items-center gap-3 p-3 transition text-green-600 bg-green-50 hover:bg-green-100 border-l-4 border-transparent hover:border-green-600">
+                    <i class="fas fa-cash-register w-5 text-center"></i><span class="text-sm font-bold">Open Cashier Panel</span>
+                </a>
+                <a href="#fee-settings" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-receipt w-5 text-center"></i><span class="text-sm">Fee Settings</span></a>
+
+                <div class="drawer-heading">Website Management</div>
+                <a href="#web-basic-info" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-globe w-5 text-center"></i><span class="text-sm">Basic Info</span></a>
+                <a href="#web-notices" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-bell w-5 text-center"></i><span class="text-sm">Notifications</span></a>
+                <a href="#web-gallery" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-images w-5 text-center"></i><span class="text-sm">Gallery</span></a>
+                <a href="#web-directory" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-layer-group w-5 text-center"></i><span class="text-sm">Add Categories</span></a>
+                <a href="#web-directory-entries" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-id-card-alt w-5 text-center"></i><span class="text-sm">Category Entries</span></a>
+
+                <div class="drawer-heading">System</div>
+                <a href="#security-settings" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-shield-alt w-5 text-center"></i><span class="text-sm">Security Settings</span></a>
+            </nav>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex flex-col gap-2">
+                <button id="admin-public-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-2 w-full p-2.5 rounded-lg font-bold transition"><i class="fas fa-home"></i><span class="text-sm">Go Public (Logout)</span></button>
+                <button id="result-exit-btn" onclick="window.logoutAdmin()" class="btn-danger flex items-center justify-center gap-2 w-full p-2.5 rounded-lg font-bold transition"><i class="fas fa-sign-out-alt"></i><span class="text-sm">Admin Logout</span></button>
+            </div>
+        </aside>
+
+        <main class="container mx-auto p-4 max-w-5xl mt-2">
+
+            <!-- 0. Dashboard -->
+            <section id="dashboard-page" class="page space-y-6">
+                <div class="card p-5 rounded-xl shadow-sm">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div>
+                            <div class="text-xs font-bold uppercase tracking-[0.25em] text-blue-600 mb-2">Admin Overview</div>
+                            <h2 class="text-2xl font-extrabold text-gray-900">Institution Command Center</h2>
+                            <p class="text-sm text-gray-500 mt-2">Monitor the active academic year, core records, and jump directly into day-to-day administration.</p>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-100 rounded-2xl px-5 py-4 min-w-[250px]">
+                            <div class="text-xs font-bold uppercase tracking-widest text-blue-500">Active Academic Year</div>
+                            <div id="dashboard-active-year" class="text-2xl font-extrabold text-blue-900 mt-1">--</div>
+                            <div id="dashboard-active-year-status" class="text-xs text-blue-700 font-semibold mt-1">Loading configuration...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="dash-card card p-5 rounded-2xl border-blue-100 bg-blue-50/60">
+                        <div class="text-xs font-bold uppercase tracking-widest text-blue-600 mb-2">Students</div>
+                        <div id="dashboard-student-count" class="text-3xl font-extrabold text-blue-900">0</div>
+                        <div class="text-sm text-blue-700 font-medium mt-2">Records in active year</div>
+                    </div>
+                    <div class="dash-card card p-5 rounded-2xl border-indigo-100 bg-indigo-50/60">
+                        <div class="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-2">Classes</div>
+                        <div id="dashboard-class-count" class="text-3xl font-extrabold text-indigo-900">0</div>
+                        <div class="text-sm text-indigo-700 font-medium mt-2">Active classes / divisions</div>
+                    </div>
+                    <div class="dash-card card p-5 rounded-2xl border-emerald-100 bg-emerald-50/60">
+                        <div class="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-2">Staff</div>
+                        <div id="dashboard-staff-count" class="text-3xl font-extrabold text-emerald-900">0</div>
+                        <div class="text-sm text-emerald-700 font-medium mt-2">Active staff accounts</div>
+                    </div>
+                    <div class="dash-card card p-5 rounded-2xl border-amber-100 bg-amber-50/60">
+                        <div class="text-xs font-bold uppercase tracking-widest text-amber-600 mb-2">Fee Items</div>
+                        <div id="dashboard-fee-item-count" class="text-3xl font-extrabold text-amber-900">0</div>
+                        <div class="text-sm text-amber-700 font-medium mt-2">Configured collection items</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="card p-5 rounded-xl shadow-sm lg:col-span-2">
+                        <div class="flex items-center justify-between mb-4 border-b pb-2">
+                            <h3 class="text-lg font-bold text-gray-900">Quick Actions</h3>
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Stage 3</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <button class="admin-quick-action flex items-center gap-3 px-4 py-4 rounded-xl border border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition text-left font-bold text-gray-800" data-target-page="academic-years"><i class="fas fa-calendar-check text-blue-600"></i><span>Manage Academic Years</span></button>
+                            <button class="admin-quick-action flex items-center gap-3 px-4 py-4 rounded-xl border border-gray-200 bg-white hover:border-green-300 hover:shadow-md transition text-left font-bold text-gray-800" data-target-page="add-students"><i class="fas fa-user-plus text-green-600"></i><span>Add Students</span></button>
+                            <button class="admin-quick-action flex items-center gap-3 px-4 py-4 rounded-xl border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md transition text-left font-bold text-gray-800" data-target-page="manage-classes"><i class="fas fa-chalkboard text-indigo-600"></i><span>Classes & Divisions</span></button>
+                            <button class="admin-quick-action flex items-center gap-3 px-4 py-4 rounded-xl border border-gray-200 bg-white hover:border-amber-300 hover:shadow-md transition text-left font-bold text-gray-800" data-target-page="fee-settings"><i class="fas fa-receipt text-amber-600"></i><span>Configure Fees</span></button>
+                        </div>
+                    </div>
+                    <div class="card p-5 rounded-xl shadow-sm">
+                        <div class="flex items-center justify-between mb-4 border-b pb-2">
+                            <h3 class="text-lg font-bold text-gray-900">Operational Snapshot</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center bg-gray-50 border rounded-xl px-4 py-3">
+                                <span class="text-sm font-semibold text-gray-600">Student Groups</span>
+                                <span id="dashboard-group-count" class="text-lg font-bold text-gray-900">0</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-50 border rounded-xl px-4 py-3">
+                                <span class="text-sm font-semibold text-gray-600">Girls</span>
+                                <span id="dashboard-female-count" class="text-lg font-bold text-pink-600">0</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-50 border rounded-xl px-4 py-3">
+                                <span class="text-sm font-semibold text-gray-600">Boys</span>
+                                <span id="dashboard-male-count" class="text-lg font-bold text-sky-600">0</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-50 border rounded-xl px-4 py-3">
+                                <span class="text-sm font-semibold text-gray-600">Pending Academic Setup</span>
+                                <span id="dashboard-setup-status" class="text-sm font-bold text-amber-600">Review required</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-50 border rounded-xl px-4 py-3">
+                                <span class="text-sm font-semibold text-gray-600">Admin Accounts</span>
+                                <span id="dashboard-admin-count" class="text-lg font-bold text-violet-600">0</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-50 border rounded-xl px-4 py-3">
+                                <span class="text-sm font-semibold text-gray-600">Recent Audit Entries</span>
+                                <span id="dashboard-audit-count" class="text-lg font-bold text-slate-700">0</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-50 border rounded-xl px-4 py-3">
+                                <span class="text-sm font-semibold text-gray-600">Session Watch</span>
+                                <span id="dashboard-session-status" class="text-sm font-bold text-emerald-600">Monitoring</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 0.1 Academic Years -->
+            <section id="academic-years-page" class="page hidden space-y-6">
+                <div class="card p-5 rounded-xl shadow-sm">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5 border-b pb-3">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Academic Year Control</h2>
+                            <p class="text-sm text-gray-500 mt-1">Create academic years, set the active working year, and use it as the foundation for student and class management.</p>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                            <div class="text-xs font-bold uppercase tracking-widest text-emerald-600">Current Working Year</div>
+                            <div id="academic-year-active-badge" class="text-xl font-extrabold text-emerald-900">--</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div><label class="block text-sm font-semibold mb-1">Academic Year</label><select id="academic-year-preset-select" class="w-full p-2.5 border rounded-lg"></select></div>
+                        <div><label class="block text-sm font-semibold mb-1">Start Month</label><select id="academic-year-start-month" class="w-full p-2.5 border rounded-lg"></select></div>
+                        <div><label class="block text-sm font-semibold mb-1">End Month</label><select id="academic-year-end-month" class="w-full p-2.5 border rounded-lg"></select></div>
+                        <div><label class="block text-sm font-semibold mb-1">Status</label><select id="academic-year-status" class="w-full p-2.5 border rounded-lg"><option value="active">Active</option><option value="planning">Planning</option><option value="archived">Archived</option></select></div>
+                        <div class="flex items-end"><button id="add-academic-year-btn" class="btn-primary font-bold py-2.5 px-6 rounded-lg shadow-md w-full"><i class="fas fa-save mr-2"></i>Apply Year Settings</button></div>
+                    </div>
+                </div>
+
+                <div class="card p-5 rounded-xl shadow-sm">
+                    <div class="flex items-center justify-between mb-4 border-b pb-2">
+                        <h3 class="text-lg font-bold text-gray-900">Configured Academic Years</h3>
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Year-first workflow</span>
+                    </div>
+                    <div id="academic-years-list" class="space-y-3"></div>
+                </div>
+            </section>
+            
+            <!-- 1. Staff Management -->
+            <section id="manage-staff-page" class="page hidden">
+                <div class="card p-5 rounded-xl shadow-sm mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Add New Staff</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="md:col-span-1"><label class="block text-sm font-semibold mb-1">1. Type <span class="mandatory-star">*</span></label><select id="st-type" class="w-full p-2.5 border rounded-lg"><option value="Teacher">Teacher</option><option value="Management">Management</option></select></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">2. Full Name <span class="mandatory-star">*</span></label><input type="text" id="st-name" class="w-full p-2.5 border rounded-lg" placeholder="e.g. John Doe"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div><label class="block text-sm font-semibold mb-1">3. Role/Subject <span class="mandatory-star">*</span></label><input type="text" id="st-role" class="w-full p-2.5 border rounded-lg" placeholder="e.g. Principal / Maths Teacher"></div>
+                        <div><label class="block text-sm font-semibold mb-1">4. Phone</label><input type="text" id="st-phone" class="w-full p-2.5 border rounded-lg" placeholder="Contact number"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <div>
+                            <p class="text-sm font-bold text-blue-800 mb-1"><i class="fas fa-envelope"></i> 5. Login Email (For Cashier Auth)</p>
+                            <p class="text-xs text-blue-600 mb-2">Collection login username (staff email).</p>
+                            <input type="email" id="st-email" class="w-full p-2.5 border rounded-lg" placeholder="staff@institute.com">
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-blue-800 mb-1"><i class="fas fa-key"></i> 6. Login Password</p>
+                            <p class="text-xs text-blue-600 mb-2">Staff collection password (stored in staff record).</p>
+                            <input type="text" id="st-password" class="w-full p-2.5 border rounded-lg" placeholder="Set staff password">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div><label class="block text-sm font-semibold mb-1">6. MSR Number</label><input type="text" id="st-msr" class="w-full p-2.5 border rounded-lg" placeholder="(For Teachers)"></div>
+                        <div><label class="block text-sm font-semibold mb-1">7. Photo URL</label><input type="text" id="st-photo" class="w-full p-2.5 border rounded-lg" placeholder="https://..."></div>
+                    </div>
+                    <div class="mb-4"><label class="block text-sm font-semibold mb-1">8. Address</label><textarea id="st-address" rows="2" class="w-full p-2.5 border rounded-lg" placeholder="Full address..."></textarea></div>
+                    <div class="mb-4"><label class="block text-sm font-semibold mb-1">9. Display Order (Public ترتيب)</label><input type="number" id="st-display-order" min="1" class="w-full p-2.5 border rounded-lg" placeholder="1 = first" value="999"><p class="text-xs text-gray-500 mt-1">Public page-ൽ card order നിശ്ചയിക്കാൻ മാത്രം. ഇവിടെ മാത്രമേ കാണൂ.</p></div>
+                    <div class="mb-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="st-active" class="w-4 h-4 rounded text-blue-600" checked><span class="text-sm font-medium text-gray-600">9. Active staff account</span></label>
+                        <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="st-can-collect" class="w-4 h-4 rounded text-green-600" checked><span class="text-sm font-medium text-gray-600">10. Collection panel access</span></label>
+                        <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="st-can-manage-results" class="w-4 h-4 rounded text-indigo-600"><span class="text-sm font-medium text-gray-600">11. Result management access</span></label>
+                    </div>
+                    <div class="text-right border-t pt-4"><button id="add-staff-btn" class="btn-primary font-bold py-2.5 px-6 rounded-lg shadow-md w-full sm:w-auto"><i class="fas fa-plus mr-2"></i> Add Staff</button></div>
+                </div>
+                <div class="card p-5 rounded-xl shadow-sm mb-6"><h2 class="text-xl font-bold mb-4 text-blue-800 border-b border-blue-100 pb-2"><i class="fas fa-chalkboard-teacher mr-2"></i>Active Teachers</h2><div id="active-teachers-list" class="space-y-3"></div></div>
+                <div class="card p-5 rounded-xl shadow-sm mb-6"><h2 class="text-xl font-bold mb-4 text-purple-800 border-b border-purple-100 pb-2"><i class="fas fa-user-tie mr-2"></i>Active Management</h2><div id="active-mgmt-list" class="space-y-3"></div></div>
+                <details class="bg-white border rounded-xl shadow-sm overflow-hidden mb-10">
+                    <summary class="p-4 font-bold text-gray-700 cursor-pointer bg-gray-50 hover:bg-gray-100 transition outline-none"><i class="fas fa-user-slash mr-2"></i> View Inactive Staff</summary>
+                    <div class="p-4 border-t bg-gray-50/50" id="inactive-staff-container"></div>
+                </details>
+            </section>
+
+            <!-- 2. Add Students -->
+            <section id="add-students-page" class="page hidden">
+                 <div class="card p-5 rounded-xl shadow-sm mb-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 border-b pb-2 gap-2">
+                        <h2 class="text-xl font-bold text-gray-800">Add Student (Manual Entry)</h2>
+                        <span id="add-students-year-badge" class="text-xs font-bold uppercase tracking-widest bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">Academic Year: --</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">1. Class <span class="mandatory-star">*</span></label><input type="text" id="add-stu-class" list="class-suggestions" class="w-full p-2.5 border rounded-lg" placeholder="e.g. 10 A"></div>
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">2. ID/UID</label><input type="text" id="add-stu-uid" class="w-full p-2.5 border rounded-lg" placeholder="Unique ID"></div>
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">3. Student Name <span class="mandatory-star">*</span></label><input type="text" id="add-stu-name" class="w-full p-2.5 border rounded-lg" placeholder="Full Name (Will auto capitalize)"></div>
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">4. Father's Name</label><input type="text" id="add-stu-father" class="w-full p-2.5 border rounded-lg" placeholder="Father's Name"></div>
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">5. Gender <span class="mandatory-star">*</span></label><select id="add-stu-gender" class="w-full p-2.5 border rounded-lg"><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">6. Mobile (Used for Login)</label><input type="tel" id="add-stu-mobile" class="w-full p-2.5 border rounded-lg" placeholder="Phone Number"></div>
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">7. Adm. No.</label><input type="text" id="add-stu-adm" class="w-full p-2.5 border rounded-lg" placeholder="Admission Number"></div>
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">8. Permanent Address</label><textarea id="add-stu-address" rows="1" class="w-full p-2.5 border rounded-lg" placeholder="Address"></textarea></div>
+                        <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">9. Student Status</label><select id="add-stu-status" class="w-full p-2.5 border rounded-lg"><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Graduated">Graduated</option></select></div>
+                    </div>
+                    <datalist id="class-suggestions"></datalist>
+                     <div class="text-right border-t pt-4"><button id="add-manual-btn" class="btn-primary font-bold py-2.5 px-8 rounded-lg shadow-md w-full sm:w-auto"><i class="fas fa-save mr-2"></i> Save Student</button></div>
+                </div>
+                
+
+                <div class="card p-5 rounded-xl shadow-sm border-blue-200 bg-blue-50/30">
+                    <div class="flex justify-between items-center mb-4 border-b border-blue-200 pb-2">
+                        <h2 class="text-xl font-bold text-blue-900"><i class="fas fa-file-excel text-green-600 mr-2"></i>Bulk Upload (CSV/Excel)</h2>
+                        <button onclick="window.downloadCSVTemplate()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2"><i class="fas fa-download text-blue-600"></i> Download CSV Template</button>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">Upload ചെയ്യുന്നതിന് മുമ്പ് <b>Class</b> dropdown-ൽ select ചെയ്യണം. Header names-ൽ ചെറിയ വ്യത്യാസങ്ങൾ (capital/small/underscore/dot) വന്നാലും auto-detect ചെയ്യും.</p>
+                    <div class="mb-3">
+                        <label class="block text-sm font-semibold mb-1 text-blue-800">Target Class for Bulk Upload <span class="mandatory-star">*</span></label>
+                        <select id="bulk-upload-class" class="w-full p-2.5 border rounded-lg bg-white">
+                            <option value="">-- Select Class --</option>
+                        </select>
+                    </div>
+                    <div class="upload-area" id="excel-drop-zone"><input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden"><i class="fas fa-cloud-upload-alt text-4xl text-blue-400 mb-3"></i><p class="font-semibold text-gray-700">Click to select or drag and drop CSV/Excel file here</p></div>
+                    <div id="excel-preview-area" class="mt-4 hidden p-4 bg-white border rounded-lg shadow-sm"><div class="flex justify-between items-center mb-2"><span class="font-bold text-gray-800" id="excel-file-name">filename.csv</span><span class="text-sm font-semibold bg-green-100 text-green-700 px-3 py-1 rounded-full" id="excel-record-count">Found 0 records</span></div><div class="progress-bar" id="upload-progress-bar"><div class="progress-fill" id="upload-progress-fill"></div></div><p class="text-xs text-center mt-2 text-gray-500 font-mono" id="upload-status-text"></p><div class="mt-4 text-right"><button id="cancel-upload-btn" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg mr-2">Cancel</button><button id="start-upload-btn" class="btn-primary px-6 py-2 font-bold rounded-lg"><i class="fas fa-upload mr-2"></i>Start Upload</button></div></div>
+                </div>
+            </section>
+
+            <!-- 3. Manage Students -->
+            <section id="manage-students-page" class="page hidden">
+                <div class="card p-5 rounded-xl shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 border-b pb-2 gap-3">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-800">Manage Students</h2>
+                            <div id="manage-students-year-badge" class="text-xs font-bold uppercase tracking-widest text-indigo-600 mt-1">Academic Year: --</div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="export-students-excel-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-2 transition"><i class="fas fa-file-excel"></i> Excel</button>
+                            <button id="export-students-csv-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-2 transition"><i class="fas fa-file-csv"></i> CSV</button>
+                            <button id="export-students-pdf-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm text-sm flex items-center gap-2 transition"><i class="fas fa-file-pdf"></i> PDF</button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-4">
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Filter by Class</label><select id="filter-manage-class" class="w-full p-2.5 border rounded-lg bg-white"><option value="all">All Classes</option><option value="GRADUATED">Graduated</option></select></div>
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Filter by Gender</label><select id="filter-manage-gender" class="w-full p-2.5 border rounded-lg bg-white"><option value="all">All</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Filter by Status</label><select id="filter-manage-status" class="w-full p-2.5 border rounded-lg bg-white"><option value="all">All</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Sort Students</label><select id="sort-manage-students" class="w-full p-2.5 border rounded-lg bg-white"><option value="name-asc">Alphabet Order</option><option value="adm-asc">Number Order</option><option value="male-first">Male then Female</option></select></div>
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Quick Search</label><div class="relative"><input type="text" id="search-student-input" placeholder="Search name or adm no..." class="w-full p-2.5 pl-9 border rounded-lg bg-white"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i></div></div>
+                        </div>
+                    </div>
+
+                    <div id="student-list-empty-state" class="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <i class="fas fa-filter text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500 font-medium">Please select a Class to view students.</p>
+                    </div>
+
+                    <div id="student-list-container" class="overflow-x-auto rounded-lg border border-gray-200 hidden"></div>
+                </div>
+            </section>
+            
+            <!-- 4. Manage Classes -->
+            <section id="manage-classes-page" class="page hidden space-y-6">
+                <div class="card p-5 rounded-xl shadow-sm bg-indigo-50/40 border-indigo-100">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4 border-b border-indigo-100 pb-3">
+                        <div>
+                            <h2 class="text-xl font-bold text-indigo-950">Academic Structure</h2>
+                            <p class="text-sm text-indigo-700 mt-1">Create and manage classes/divisions inside the currently active academic year.</p>
+                        </div>
+                        <span id="manage-classes-year-badge" class="text-xs font-bold uppercase tracking-widest bg-white text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">Academic Year: --</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-800">New Class / Division</label>
+                            <input type="text" id="new-class-name-input" class="w-full p-2.5 border rounded-lg bg-white" placeholder="e.g. 10 A or Plus One Science">
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <button id="generate-default-classes-btn" class="px-3 py-1.5 text-xs font-bold rounded border border-indigo-300 text-indigo-700 bg-indigo-50">Use Default 1 to 12</button>
+                            </div>
+                        </div>
+                        <div class="flex items-end"><button id="create-class-btn" class="btn-primary font-bold py-2.5 px-6 rounded-lg shadow-md w-full md:w-auto"><i class="fas fa-save mr-2"></i>Save Class</button></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 mt-3">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1 text-gray-700">Division base class</label>
+                            <input type="text" id="division-base-class-input" class="w-full p-2 border rounded-lg bg-white" placeholder="e.g. 8">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1 text-gray-700">Division count</label>
+                            <input type="number" id="division-count-input" min="1" max="10" value="3" class="w-full p-2 border rounded-lg bg-white">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="create-divisions-btn" class="w-full px-4 py-2 rounded-lg text-sm font-bold border border-blue-300 text-blue-700 bg-blue-50">Create A/B/C...</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-5 rounded-xl shadow-sm">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Active Classes & Divisions</h2>
+                    <div id="class-list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                </div>
+                
+                <div class="card p-5 rounded-xl shadow-sm bg-blue-50/30 border-blue-200">
+                    <h2 class="text-xl font-bold mb-4 text-blue-900 border-b border-blue-200 pb-2"><i class="fas fa-random mr-2"></i>Divide / Merge Classes</h2>
+                    <div class="mb-3">
+                        <label class="block text-sm font-semibold mb-1 text-gray-800">Select Source Class</label>
+                        <select id="move-from-class" class="w-full md:w-1/2 p-2.5 border rounded-lg bg-white"><option value="">-- Select --</option></select>
+                    </div>
+                    <div id="move-student-list-container" class="mt-2 space-y-2 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3 hidden bg-white shadow-inner"></div>
+                    
+                    <div id="move-target-container" class="mt-4 hidden p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <label class="block text-sm font-bold text-gray-800 mb-3">Move Selected Students To:</label>
+                        <div class="flex gap-6 mb-3">
+                            <label class="flex items-center gap-2 cursor-pointer font-medium text-sm"><input type="radio" name="move_dest_type" value="existing" checked class="w-4 h-4 text-blue-600"> Existing Class</label>
+                            <label class="flex items-center gap-2 cursor-pointer font-medium text-sm"><input type="radio" name="move_dest_type" value="new" class="w-4 h-4 text-blue-600"> New Class</label>
+                        </div>
+                        <select id="move-target-sel" class="w-full p-2.5 border rounded-lg bg-gray-50"></select>
+                        <input type="text" id="move-target-inp" class="w-full p-2.5 border rounded-lg bg-gray-50 hidden" placeholder="Enter new class name (e.g. 10 B)">
+                        
+                        <div class="text-right mt-4 pt-3 border-t">
+                            <button id="move-selected-students-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Move Students</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 5. Student Groups -->
+            <section id="manage-groups-page" class="page hidden space-y-6">
+                <div class="card p-5 rounded-xl shadow-sm">
+                    <h2 class="text-xl font-bold mb-3 text-gray-800 border-b pb-2">Create Student Group</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-semibold mb-1">Number of Students to Group</label><input type="number" id="num-of-students-group" min="2" class="w-full p-2.5 border rounded-lg shadow-sm" placeholder="e.g. 2"></div>
+                            <div><label class="block text-sm font-semibold mb-1 text-blue-700">Group Monthly Fee (₹) <span class="text-xs font-normal text-gray-500">(Optional)</span></label><input type="number" id="group-monthly-fee" class="w-full p-2.5 border border-blue-300 rounded-lg shadow-sm bg-blue-50 font-bold" placeholder="e.g. 800"></div>
+                        </div>
+                        <div id="group-creation-container" class="space-y-4"></div>
+                        <div id="create-group-btn-container" class="text-right hidden border-t pt-4"><button id="create-group-btn" class="btn-primary font-bold py-2.5 px-8 rounded-lg shadow-md">Create Group</button></div>
+                    </div>
+                </div>
+                <div class="card p-5 rounded-xl shadow-sm"><h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Existing Groups</h2><div id="student-groups-list" class="space-y-3"></div></div>
+            </section>
+
+            <!-- 6.1 Result Management -->
+            <section id="fee-concessions-page" class="page hidden space-y-6">
+                <div class="card p-5 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center mb-5 border-b pb-2">
+                        <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-hand-holding-usd text-green-600 mr-2"></i>Fee Concessions</h2>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-5">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase">Filter Class</label><select id="filter-conc-class" class="w-full p-2 border rounded bg-white mt-1"><option value="">-- Select --</option></select></div>
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase">Search Student</label><input type="text" id="search-conc-input" placeholder="Name or Adm No..." class="w-full p-2 border rounded bg-white mt-1"></div>
+                        </div>
+                    </div>
+                    <div id="conc-list-empty" class="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-gray-500">Select a class or search to find students.</div>
+                    <div id="conc-list-container" class="space-y-2 hidden"></div>
+                </div>
+
+                <div class="card p-5 rounded-xl shadow-sm border-green-200 bg-green-50/20">
+                    <h3 class="font-bold text-green-800 mb-3 border-b border-green-200 pb-2">Active Concessions (All Classes)</h3>
+                    <div id="active-concessions-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+                </div>
+            </section>
+            
+            <!-- 7. Fee Settings -->
+            <section id="fee-settings-page" class="page hidden space-y-6">
+                 <div class="card p-5 rounded-xl shadow-sm bg-blue-50/30 border-blue-100">
+                    <h2 class="text-xl font-bold mb-3 text-blue-900 border-b border-blue-200 pb-2"><i class="fas fa-cog mr-2"></i> Default Configuration</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                        <div><label class="block text-sm font-semibold mb-1">School Default Monthly Fee (₹)</label><input type="number" id="default-fee-input" class="w-full p-2.5 border rounded-lg shadow-sm font-bold text-blue-700 bg-white"></div>
+                        <div><label class="block text-sm font-semibold mb-1">Fee Status Title (For PDF Report)</label><input type="text" id="fee-status-title-input" class="w-full p-2.5 border rounded-lg shadow-sm bg-white"></div>
+                    </div>
+                    <div class="flex items-center justify-between bg-white p-4 rounded-lg border shadow-sm mb-4">
+                        <div>
+                            <p class="text-sm font-bold text-gray-800">Is Receipt Number Mandatory for Default Fee?</p>
+                            <p class="text-xs text-gray-500 mt-1">If enabled, cashier cannot save regular monthly fee without entering a receipt number.</p>
+                        </div>
+                        <div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in ml-4">
+                            <input type="checkbox" id="default-fee-receipt-req" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                            <label for="default-fee-receipt-req" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        </div>
+                    </div>
+                    <div class="text-right"><button id="save-fee-config-btn" class="btn-primary font-bold py-2.5 px-8 rounded-lg shadow-md"><i class="fas fa-save mr-2"></i> Save Config</button></div>
+                </div>
+
+                <div class="card p-5 rounded-xl shadow-sm">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2"><i class="fas fa-plus-circle mr-2 text-green-600"></i> Advanced Fee Builder</h2>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div><label class="block text-sm font-semibold mb-1">Fee Item Name *</label><input type="text" id="adv-fee-name" class="w-full p-2.5 border rounded-lg" placeholder="e.g. Admission Fee, Exam Fee"></div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">Fee Scope (കാറ്റഗറി) *</label>
+                                <select id="adv-fee-scope" class="w-full p-2.5 border rounded-lg font-medium text-blue-700">
+                                    <option value="global">Option A: Global (Same for all classes)</option>
+                                    <option value="class-wise">Option B: Class-wise (Different for each class)</option>
+                                    <option value="specific">Option C: Specific Class Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="scope-global-container" class="mb-4 bg-white p-3 rounded border">
+                            <label class="block text-sm font-semibold mb-1">Global Amount (₹)</label>
+                            <input type="number" id="adv-fee-global-amt" class="w-full sm:w-1/2 p-2 border rounded-lg" placeholder="Amount for everyone">
+                        </div>
+
+                        <div id="scope-class-wise-container" class="mb-4 bg-white p-3 rounded border hidden">
+                            <label class="block text-sm font-semibold mb-2">Set Amount for each class:</label>
+                            <div id="class-wise-inputs" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+                        </div>
+
+                        <div id="scope-specific-container" class="mb-4 bg-white p-3 rounded border hidden">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-semibold mb-1">Select Target Class</label><select id="adv-fee-specific-class" class="w-full p-2 border rounded-lg"></select></div>
+                                <div><label class="block text-sm font-semibold mb-1">Amount (₹)</label><input type="number" id="adv-fee-specific-amt" class="w-full p-2 border rounded-lg" placeholder="Amount"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between bg-white p-3 rounded border mb-4">
+                            <div><p class="text-sm font-bold text-gray-800">Is Receipt Number Mandatory?</p></div>
+                            <div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in ml-4">
+                                <input type="checkbox" id="adv-fee-receipt-req" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="adv-fee-receipt-req" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+
+                        <div class="text-right border-t pt-3"><button id="add-adv-fee-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-8 rounded-lg shadow-md"><i class="fas fa-save mr-2"></i> Create Fee Item</button></div>
+                    </div>
+
+                    <h3 class="font-bold text-gray-800 mb-3 border-b pb-2"><i class="fas fa-list-ul mr-2 text-gray-500"></i> Active Fee Items (Custom items can be reordered)</h3>
+                    <div id="fee-items-management-container" class="space-y-3"></div>
+                </div>
+            </section>
+            
+            <!-- 8. Website Basic Info -->
+            <section id="web-basic-info-page" class="page hidden space-y-6">
+                 <div class="card p-5 rounded-xl shadow-sm">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2"><i class="fas fa-globe mr-2 text-gray-500"></i> Website & App Info</h2>
+                    <div class="mb-6">
+                        <h3 class="text-lg font-bold text-blue-800 mb-3"><i class="fas fa-info-circle mr-2"></i>Application Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-semibold mb-1">App / Institution Name</label><input type="text" id="app-name-input" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                            <div><label class="block text-sm font-semibold mb-1">App Subtitle</label><input type="text" id="app-subtitle-input" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Register Number</label><input type="text" id="web-regno" class="w-full p-2.5 border rounded-lg bg-gray-50" placeholder="e.g. Reg: 12345"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Logo URL</label><input type="text" id="web-logo" class="w-full p-2.5 border rounded-lg bg-gray-50" placeholder="https://..."></div>
+                        </div>
+                    </div>
+                    <div class="mb-6 border-t pt-4 border-gray-100">
+                        <h3 class="text-lg font-bold text-green-800 mb-3"><i class="fas fa-address-book mr-2"></i>Contact Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="block text-sm font-semibold mb-1">Place / Location</label><input type="text" id="web-place" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Contact Phone</label><input type="text" id="web-phone" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Contact Email</label><input type="email" id="web-email" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                        </div>
+                    </div>
+                    <div class="mb-6 border-t pt-4 border-gray-100">
+                        <h3 class="text-lg font-bold text-purple-800 mb-3"><i class="fas fa-hashtag mr-2"></i>Social Media Links</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-semibold mb-1"><i class="fab fa-whatsapp text-green-500 mr-1"></i> WhatsApp</label><input type="text" id="web-wa" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                            <div><label class="block text-sm font-semibold mb-1"><i class="fab fa-facebook text-blue-600 mr-1"></i> Facebook</label><input type="text" id="web-fb" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                            <div><label class="block text-sm font-semibold mb-1"><i class="fab fa-instagram text-pink-600 mr-1"></i> Instagram</label><input type="text" id="web-ig" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                            <div><label class="block text-sm font-semibold mb-1"><i class="fab fa-telegram text-sky-500 mr-1"></i> Telegram</label><input type="text" id="web-tg" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                            <div><label class="block text-sm font-semibold mb-1"><i class="fab fa-youtube text-red-600 mr-1"></i> YouTube</label><input type="text" id="web-yt" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                        </div>
+                    </div>
+                    <div class="mb-6 border-t pt-4 border-gray-100">
+                        <h3 class="text-lg font-bold text-emerald-800 mb-3"><i class="fas fa-money-check-alt mr-2"></i>Student Payment Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="block text-sm font-semibold mb-1">Account Holder Name</label><input type="text" id="pay-account-name" class="w-full p-2.5 border rounded-lg bg-gray-50" placeholder="Institution / Account Holder"></div>
+                            <div><label class="block text-sm font-semibold mb-1">UPI Number</label><input type="text" id="pay-upi-number" class="w-full p-2.5 border rounded-lg bg-gray-50" placeholder="Mobile linked with UPI"></div>
+                            <div><label class="block text-sm font-semibold mb-1">UPI ID</label><input type="text" id="pay-upi-id" class="w-full p-2.5 border rounded-lg bg-gray-50" placeholder="school@upi"></div>
+                        </div>
+                    </div>
+                    <div class="border-t pt-4 border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-3"><i class="fas fa-file-alt mr-2"></i>About Us Description</h3>
+                        <textarea id="web-about" rows="4" class="w-full p-2.5 border rounded-lg bg-gray-50"></textarea>
+                    </div>
+                    <div class="mt-6 text-right pt-4 border-t"><button id="save-web-info-btn" class="btn-primary font-bold py-3 px-8 rounded-xl shadow-md"><i class="fas fa-save mr-2"></i> Save Info</button></div>
+                </div>
+            </section>
+            
+            <!-- 9. Web Notices -->
+            <section id="web-notices-page" class="page hidden"><div class="card p-5 rounded-xl shadow-sm bg-blue-50/20 border-blue-100"><h2 class="text-xl font-bold mb-4 text-blue-900 border-b border-blue-200 pb-2"><i class="fas fa-bell mr-2"></i> Notice Board</h2><div class="flex flex-col gap-3 mb-6 bg-white p-4 rounded-lg shadow-sm border"><input type="text" id="new-notice-head" class="w-full p-2.5 border rounded-lg" placeholder="Notice Heading (e.g. Exam Update)"><textarea id="new-notice-txt" rows="7" class="w-full p-2.5 border rounded-lg resize-y" placeholder="Enter Notice Details..."></textarea><div class="flex flex-col sm:flex-row gap-3"><input type="date" id="new-notice-dt" class="w-full sm:w-40 p-2.5 border rounded-lg"><label class="inline-flex items-center gap-2 text-sm font-semibold text-blue-900 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2"><input type="checkbox" id="new-notice-pin" class="w-4 h-4 rounded text-blue-600"> Pin notice</label><button id="add-notice-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-lg shadow">Publish</button></div></div><div id="web-notices-list" class="space-y-3"></div></div></section>
+            
+            <!-- 10. Web Gallery -->
+            <section id="web-gallery-page" class="page hidden"><div class="card p-5 rounded-xl shadow-sm"><h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2"><i class="fas fa-images mr-2 text-gray-500"></i> Gallery Management</h2><div class="flex flex-col sm:flex-row gap-3 mb-6"><input type="text" id="new-gal-url" class="flex-grow p-2.5 border rounded-lg shadow-sm" placeholder="Paste Image URL here"><button id="add-gal-btn" class="btn-primary font-bold px-8 py-2.5 rounded-lg shadow-md">Add</button></div><div id="web-gallery-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div></div></section>
+
+            <!-- 10B. Dynamic Public Categories -->
+            <section id="web-directory-page" class="page hidden space-y-6">
+                <div class="card p-5 rounded-xl shadow-sm border border-emerald-100 bg-emerald-50/40">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 border-b border-emerald-200 pb-2">
+                        <div>
+                            <h2 class="text-xl font-bold text-emerald-900"><i class="fas fa-layer-group mr-2"></i>Add Categories</h2>
+                            <p class="text-sm text-emerald-700 mt-1">Create professional public directory categories with default profile fields.</p>
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-widest bg-white text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">Profile Defaults Enabled</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3">
+                        <input type="text" id="dir-cat-name" class="p-2.5 border rounded-lg" placeholder="Category Name (e.g. Student)">
+                        <input type="number" id="dir-cat-order" class="p-2.5 border rounded-lg w-full md:w-24" min="1" value="1" placeholder="Order">
+                        <label class="inline-flex items-center gap-2 text-sm font-semibold bg-white border rounded-lg px-3"><input type="checkbox" id="dir-cat-public" checked class="w-4 h-4"> Show in Public</label>
+                        <button id="dir-cat-add-btn" class="btn-primary font-bold px-6 py-2.5 rounded-lg">Add Category</button>
+                    </div>
+                    <div id="dir-categories-list" class="space-y-3 mt-4"></div>
+                </div>
+
+                <div class="card p-5 rounded-xl shadow-sm border border-indigo-100 bg-indigo-50/30">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 border-b border-indigo-100 pb-2">
+                        <h3 class="text-lg font-bold text-indigo-900"><i class="fas fa-list-alt mr-2"></i>Category Fields</h3>
+                        <p class="text-xs font-semibold text-indigo-700">Name required • Role/Photo/Phone/Address optional</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-2">
+                        <select id="dir-field-category" class="p-2.5 border rounded-lg md:col-span-2"></select>
+                        <input type="text" id="dir-field-label" class="p-2.5 border rounded-lg" placeholder="Field Label">
+                        <select id="dir-field-type" class="p-2.5 border rounded-lg"><option value="text">Text</option><option value="number">Number</option><option value="email">Email</option><option value="phone">Phone</option><option value="date">Date</option><option value="textarea">Textarea</option></select>
+                        <input type="number" id="dir-field-order" class="p-2.5 border rounded-lg" min="1" value="1" placeholder="Order">
+                        <button id="dir-field-add-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-lg">Add Field</button>
+                    </div>
+                    <label class="inline-flex items-center gap-2 text-sm font-semibold mt-3"><input type="checkbox" id="dir-field-required" class="w-4 h-4"> Required</label>
+                    <div id="dir-fields-list" class="space-y-2 mt-3"></div>
+                </div>
+
+                <div class="card p-5 rounded-xl shadow-sm border border-violet-100 bg-violet-50/30">
+                    <h3 class="text-lg font-bold mb-3 text-violet-900"><i class="fas fa-user-lock mr-2"></i>Category Login Setup</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Category</label>
+                            <select id="dir-auth-category" class="w-full p-2.5 border rounded-lg"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Target Page</label>
+                            <select id="dir-auth-target-page" class="w-full p-2.5 border rounded-lg">
+                                <option value="collection">Collection Page</option>
+                                <option value="student">Student Page</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Login Mode</label>
+                            <select id="dir-auth-mode" class="w-full p-2.5 border rounded-lg">
+                                <option value="manual">New Username + Password</option>
+                                <option value="mapped">Use Existing Fields</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-auth-enabled" class="w-4 h-4"> Enable Login for Category</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Username Field</label>
+                            <select id="dir-auth-username-field" class="w-full p-2.5 border rounded-lg"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Password Field</label>
+                            <select id="dir-auth-password-field" class="w-full p-2.5 border rounded-lg"></select>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button id="dir-auth-save-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg">Save Login Setup</button>
+                    </div>
+                </div>
+
+                <div class="card p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold mb-3 text-slate-800"><i class="fas fa-shield-alt mr-2"></i>Page Access</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Category</label>
+                            <select id="dir-access-category" class="w-full p-2.5 border rounded-lg"></select>
+                        </div>
+                        <label class="inline-flex items-center gap-2 text-sm font-semibold md:items-end"><input type="checkbox" id="dir-access-collection" class="w-4 h-4"> Collection Page Access</label>
+                        <label class="inline-flex items-center gap-2 text-sm font-semibold md:items-end"><input type="checkbox" id="dir-access-student" class="w-4 h-4"> Student Page Access</label>
+                    </div>
+                    <div class="mt-3">
+                        <button id="dir-access-save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg">Save Category Access</button>
+                    </div>
+
+                    <div class="border-t mt-5 pt-4">
+                        <h4 class="font-bold mb-2">Individual Override</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <select id="dir-override-category" class="p-2.5 border rounded-lg"></select>
+                            <select id="dir-override-entry" class="p-2.5 border rounded-lg md:col-span-2"></select>
+                            <label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-override-blocked" class="w-4 h-4"> Block Login</label>
+                            <label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-override-collection" class="w-4 h-4"> Collection Access</label>
+                            <label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-override-student" class="w-4 h-4"> Student Access</label>
+                        </div>
+                        <div class="mt-3 flex gap-2">
+                            <button id="dir-override-save-btn" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-2 rounded-lg">Save Override</button>
+                            <button id="dir-override-clear-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2 rounded-lg">Clear Override</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="web-directory-entries-page" class="page hidden space-y-6">
+                <div class="card p-5 rounded-xl shadow-sm border border-cyan-100 bg-cyan-50/30">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 border-b border-cyan-200 pb-2">
+                        <div>
+                            <h2 class="text-xl font-bold text-cyan-900"><i class="fas fa-id-card-alt mr-2"></i>Category Entries</h2>
+                            <p class="text-sm text-cyan-700 mt-1">Add, review, edit, and remove profile cards for each category.</p>
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-widest bg-white text-cyan-700 px-3 py-1 rounded-full border border-cyan-200">Professional Card Mode</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+                        <select id="dir-entry-category" class="p-2.5 border rounded-lg"></select>
+                        <button id="dir-entry-save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg">Save Entry</button>
+                    </div>
+                    <div class="mt-2">
+                        <label class="block text-sm font-semibold mb-1">Display Order (Public ترتيب)</label>
+                        <input type="number" id="dir-entry-order" min="1" class="w-full md:w-56 p-2.5 border rounded-lg" value="999" placeholder="1 = first">
+                    </div>
+                    <div id="dir-entry-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"></div>
+                    <div id="dir-entries-list" class="space-y-2 mt-4"></div>
+                </div>
+            </section>
+
+            <!-- 11. Security Settings -->
+            <section id="security-settings-page" class="page hidden space-y-6">
+                <div class="card p-5 rounded-xl shadow-sm bg-red-50/30 border-red-100">
+                    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5 border-b border-red-200 pb-3">
+                        <div>
+                            <h2 class="text-xl font-bold text-red-800"><i class="fas fa-user-shield mr-2"></i>Admin Security & Roles</h2>
+                            <p class="text-sm text-gray-600 mt-2">Super Admin only access: manage primary admin credentials, session control, backups, and the office audit trail.</p>
+                        </div>
+                        <div class="bg-white border border-red-200 rounded-xl px-4 py-3 min-w-[240px]">
+                            <div class="text-xs font-bold uppercase tracking-widest text-red-500">Signed in as</div>
+                            <div id="security-current-admin-email" class="text-sm font-extrabold text-red-900 mt-1 break-all">--</div>
+                            <div id="security-current-admin-role" class="text-xs text-red-700 font-semibold mt-1">Role: --</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between border-b pb-2">
+                                <h3 class="text-lg font-bold text-gray-900">Admin Accounts</h3>
+                                <span id="admin-role-summary" class="text-xs font-semibold uppercase tracking-widest text-gray-400">0 active admins</span>
+                            </div>
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs font-semibold text-blue-800">
+                                Only one primary Super Admin is allowed for Admin panel access. Other staff should use Collection panel.
+                            </div>
+                            <div class="flex flex-wrap gap-3 pt-2 border-t">
+                                <button id="save-admin-auth-btn" class="bg-white border border-red-200 text-red-700 font-bold py-2.5 px-5 rounded-lg shadow-sm transition hover:bg-red-50"><i class="fas fa-envelope mr-2"></i>Sync Legacy Email</button>
+                            </div>
+                            <div id="admin-role-list" class="space-y-3"></div>
+                            <div class="border-t pt-4">
+                                <h4 class="text-sm font-bold text-gray-900 mb-2"><i class="fas fa-key mr-2 text-red-600"></i>Update Current Admin Login</h4>
+                                <p class="text-xs text-gray-500 mb-3">ഈ അക്കൗണ്ടിന്റെ Email / Password ഇവിടെ തന്നെ പുതുക്കാം. Save ചെയ്യുന്നതിന് മുമ്പ് current password നൽകണം.</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div><label class="block text-xs font-semibold mb-1">Current Password <span class="mandatory-star">*</span></label><input type="password" id="admin-cred-current-password" class="w-full p-2.5 border rounded-lg" placeholder="Current password"></div>
+                                    <div><label class="block text-xs font-semibold mb-1">New Email (optional)</label><input type="email" id="admin-cred-new-email" class="w-full p-2.5 border rounded-lg" placeholder="new-admin@institute.com"></div>
+                                    <div class="md:col-span-2"><label class="block text-xs font-semibold mb-1">New Password (optional)</label><input type="password" id="admin-cred-new-password" class="w-full p-2.5 border rounded-lg" placeholder="At least 6 characters"></div>
+                                </div>
+                                <div class="pt-3">
+                                    <button id="update-admin-credentials-btn" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition"><i class="fas fa-shield-alt mr-2"></i>Update Login Credentials</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white border border-amber-200 rounded-2xl p-5 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between border-b border-amber-100 pb-2">
+                                <h3 class="text-lg font-bold text-amber-900"><i class="fas fa-shield-alt mr-2"></i>Session Monitor</h3>
+                                <span class="text-xs font-semibold uppercase tracking-widest text-amber-600">Live watchdog</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm max-h-[190px] overflow-y-auto pr-1 border border-amber-100 rounded-xl p-3 bg-amber-50/20">
+                                <div class="bg-white border border-amber-100 rounded-xl p-3"><div class="text-xs font-bold uppercase tracking-widest text-gray-500">Session started</div><div id="session-monitor-started" class="font-bold text-gray-900 mt-1">--</div></div>
+                                <div class="bg-white border border-amber-100 rounded-xl p-3"><div class="text-xs font-bold uppercase tracking-widest text-gray-500">Last activity</div><div id="session-monitor-active" class="font-bold text-gray-900 mt-1">--</div></div>
+                                <div class="bg-white border border-amber-100 rounded-xl p-3"><div class="text-xs font-bold uppercase tracking-widest text-gray-500">Absolute expiry</div><div id="session-monitor-absolute" class="font-bold text-gray-900 mt-1">--</div></div>
+                                <div class="bg-white border border-amber-100 rounded-xl p-3"><div class="text-xs font-bold uppercase tracking-widest text-gray-500">Idle expiry</div><div id="session-monitor-idle" class="font-bold text-gray-900 mt-1">--</div></div>
+                            </div>
+                            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+                                <div class="font-bold">Last global session event</div>
+                                <div id="session-control-last-event" class="mt-1">No forced logout recorded yet.</div>
+                            </div>
+                            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50/40">
+                                <div class="text-sm font-bold text-gray-900 mb-2">Active Admin Devices</div>
+                                <div id="session-device-list" class="space-y-2 max-h-[220px] overflow-y-auto pr-1"></div>
+                            </div>
+                            <div class="border border-cyan-200 rounded-xl p-3 bg-cyan-50/40">
+                                <div class="text-sm font-bold text-cyan-900 mb-2">Active Collection Sessions</div>
+                                <div id="collection-session-list" class="space-y-2 max-h-[220px] overflow-y-auto pr-1"></div>
+                            </div>
+                            <div class="border border-indigo-200 rounded-xl p-3 bg-indigo-50/40">
+                                <div class="text-sm font-bold text-indigo-900 mb-2">Active Student Sessions</div>
+                                <div id="student-session-list" class="space-y-2 max-h-[220px] overflow-y-auto pr-1"></div>
+                            </div>
+                            <div class="flex flex-wrap gap-3 pt-2 border-t">
+                                <button id="refresh-session-monitor-btn" class="bg-white border border-gray-300 text-gray-700 font-bold py-2.5 px-5 rounded-lg shadow-sm hover:bg-gray-50"><i class="fas fa-rotate mr-2"></i>Refresh Status</button>
+                                <button id="force-logout-btn" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-5 rounded-lg shadow-md"><i class="fas fa-power-off mr-2"></i>Force Re-login</button>
+                                <button id="logout-current-admin-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md"><i class="fas fa-sign-out-alt mr-2"></i>Logout This Session</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div class="card p-5 rounded-xl shadow-sm bg-blue-50/30 border-blue-100 space-y-4">
+                        <div class="flex items-center justify-between border-b border-blue-200 pb-2">
+                            <h3 class="text-lg font-bold text-blue-900"><i class="fas fa-database mr-2"></i>Backup & Restore</h3>
+                            <span class="text-xs font-semibold uppercase tracking-widest text-blue-500">Office recovery</span>
+                        </div>
+                        <p class="text-sm text-gray-600">Export a full JSON snapshot of master data and restore it when a safe office-approved rollback is required.</p>
+                        <div class="flex flex-wrap gap-3">
+                            <button id="backup-export-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md"><i class="fas fa-download mr-2"></i>Export Backup</button>
+                            <label for="restore-file-input" class="bg-white border border-blue-200 text-blue-700 font-bold py-2.5 px-5 rounded-lg shadow-sm cursor-pointer hover:bg-blue-50"><i class="fas fa-upload mr-2"></i>Select Restore File</label>
+                            <input type="file" id="restore-file-input" accept="application/json,.json" class="hidden">
+                        </div>
+                        <div id="restore-preview" class="hidden bg-white border border-blue-200 rounded-xl p-4 text-sm text-gray-700 space-y-2">
+                            <div class="font-bold text-blue-900">Restore Preview</div>
+                            <div id="restore-preview-meta">--</div>
+                            <div id="restore-preview-counts" class="text-xs text-gray-500"></div>
+                            <button id="run-restore-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm" disabled><i class="fas fa-history mr-2"></i>Run Restore</button>
+                        </div>
+                    </div>
+
+                    <div class="card p-5 rounded-xl shadow-sm bg-slate-50 border-slate-200 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <h3 class="text-lg font-bold text-slate-900"><i class="fas fa-clipboard-list mr-2"></i>Audit Log</h3>
+                            <span id="audit-log-summary" class="text-xs font-semibold uppercase tracking-widest text-slate-500">0 entries</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Filter action</label><select id="audit-filter-action" class="w-full p-2.5 border rounded-lg bg-white"><option value="all">All actions</option><option value="security">Security</option><option value="backup">Backup</option><option value="student">Students</option><option value="class">Classes</option><option value="group">Groups</option><option value="fee">Fees</option><option value="website">Website</option></select></div>
+                            <div><label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Search</label><input type="text" id="audit-search-input" class="w-full p-2.5 border rounded-lg bg-white" placeholder="email, message, entity..."></div>
+                        </div>
+                        <div id="audit-log-list" class="space-y-3 max-h-[420px] overflow-y-auto pr-1"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Edit Staff Modal -->
+    <div id="edit-staff-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-2xl mx-auto bg-white max-h-[90vh] overflow-y-auto relative">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">Edit Staff Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="md:col-span-1"><label class="block text-sm font-semibold mb-1">1. Type</label><select id="e-st-type" class="w-full p-2.5 border rounded-lg bg-gray-50"><option value="Teacher">Teacher</option><option value="Management">Management</option></select></div>
+                <div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">2. Full Name</label><input type="text" id="e-st-name" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div><label class="block text-sm font-semibold mb-1">3. Role/Subject</label><input type="text" id="e-st-role" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div><label class="block text-sm font-semibold mb-1">4. Phone</label><input type="text" id="e-st-phone" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                <div><label class="block text-sm font-semibold mb-1 text-blue-900">5. Login Email</label><input type="email" id="e-st-email" class="w-full p-2.5 border rounded-lg"></div>
+                <div><label class="block text-sm font-semibold mb-1 text-blue-900">6. Login Password</label><input type="text" id="e-st-password" class="w-full p-2.5 border rounded-lg"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div><label class="block text-sm font-semibold mb-1">6. MSR Number</label><input type="text" id="e-st-msr" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div><label class="block text-sm font-semibold mb-1">7. Photo URL</label><input type="text" id="e-st-photo" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+            </div>
+            <div class="mb-4"><label class="block text-sm font-semibold mb-1">8. Address</label><textarea id="e-st-addr" rows="2" class="w-full p-2.5 border rounded-lg bg-gray-50"></textarea></div>
+            <div class="mb-4"><label class="block text-sm font-semibold mb-1">9. Display Order (Public ترتيب)</label><input type="number" id="e-st-display-order" min="1" class="w-full p-2.5 border rounded-lg bg-gray-50" value="999"></div>
+            <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label class="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" id="e-st-active" class="w-4 h-4 rounded text-blue-600"> Active</label>
+                <label class="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" id="e-st-can-collect" class="w-4 h-4 rounded text-green-600"> Collection panel access</label>
+                <label class="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" id="e-st-can-manage-results" class="w-4 h-4 rounded text-indigo-600"> Result management access</label>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t mt-4">
+                <button id="edit-staff-cancel" class="px-5 py-2.5 bg-gray-200 font-bold rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="edit-staff-update" class="btn-primary px-6 py-2.5 rounded-lg font-bold shadow-md">Update Staff</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div id="edit-student-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-2xl mx-auto bg-white max-h-[90vh] overflow-y-auto relative">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">Edit Student Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">Class</label><input type="text" id="e-stu-class" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">ID/UID</label><input type="text" id="e-stu-uid" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">Student Name</label><input type="text" id="e-stu-name" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">Father's Name</label><input type="text" id="e-stu-fat" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">Gender</label><select id="e-stu-gender" class="w-full p-2.5 border rounded-lg bg-gray-50"><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">Mobile</label><input type="tel" id="e-stu-mob" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">Adm. No.</label><input type="text" id="e-stu-adm" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">Address</label><textarea id="e-stu-addr" rows="1" class="w-full p-2.5 border rounded-lg bg-gray-50"></textarea></div>
+                <div class="col-span-1 lg:col-span-2"><label class="block text-sm font-semibold mb-1">Student Status</label><select id="e-stu-status" class="w-full p-2.5 border rounded-lg bg-gray-50"><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Graduated">Graduated</option></select></div>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t mt-2">
+                <button id="edit-student-cancel" class="px-5 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="edit-student-update" class="btn-primary px-6 py-2.5 rounded-lg font-bold shadow-md">Update Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Class Modal -->
+    <div id="edit-class-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-auto bg-white relative">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">Rename Class</h3>
+            <div class="space-y-4"><div><label class="block text-sm font-semibold mb-1">New Class Name</label><input type="text" id="edit-class-name" class="w-full p-2.5 border rounded-lg focus:ring-2"></div></div>
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                <button id="edit-class-cancel" class="px-5 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="edit-class-update" class="btn-primary px-6 py-2.5 rounded-lg font-bold shadow-md">Rename</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directory Field Edit Popup -->
+    <div id="dir-field-edit-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-xl mx-auto bg-white relative">
+            <h3 class="text-lg font-bold mb-4 text-gray-900 border-b pb-2">Edit Category Field</h3>
+            <input type="hidden" id="dir-field-edit-category-id">
+            <input type="hidden" id="dir-field-edit-field-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">Label</label><input type="text" id="dir-field-edit-label" class="w-full p-2.5 border rounded-lg"></div>
+                <div><label class="block text-sm font-semibold mb-1">Key</label><input type="text" id="dir-field-edit-key" class="w-full p-2.5 border rounded-lg"></div>
+                <div><label class="block text-sm font-semibold mb-1">Type</label><select id="dir-field-edit-type" class="w-full p-2.5 border rounded-lg"><option value="text">Text</option><option value="number">Number</option><option value="email">Email</option><option value="phone">Phone</option><option value="date">Date</option><option value="textarea">Textarea</option></select></div>
+                <div><label class="block text-sm font-semibold mb-1">Order</label><input type="number" min="1" id="dir-field-edit-order" class="w-full p-2.5 border rounded-lg"></div>
+                <div class="flex items-end"><label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-field-edit-required" class="w-4 h-4"> Required</label></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-5">
+                <button id="dir-field-edit-cancel" class="px-5 py-2.5 bg-gray-200 rounded-lg font-bold">Cancel</button>
+                <button id="dir-field-edit-delete" class="px-5 py-2.5 bg-red-50 text-red-700 border border-red-200 rounded-lg font-bold">Delete</button>
+                <button id="dir-field-edit-save" class="btn-primary px-6 py-2.5 rounded-lg font-bold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directory Entry Edit Popup -->
+    <div id="dir-entry-edit-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-2xl mx-auto bg-white relative max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-bold mb-4 text-gray-900 border-b pb-2">Edit Directory Entry</h3>
+            <input type="hidden" id="dir-entry-edit-id">
+            <div class="mb-3">
+                <label class="block text-sm font-semibold mb-1">Display Order (Public ترتيب)</label>
+                <input type="number" id="dir-entry-edit-order" min="1" class="w-full md:w-56 p-2.5 border rounded-lg" value="999">
+            </div>
+            <div id="dir-entry-edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+            <div class="flex justify-end gap-3 mt-5 pt-4 border-t">
+                <button id="dir-entry-edit-cancel" class="px-5 py-2.5 bg-gray-200 rounded-lg font-bold">Cancel</button>
+                <button id="dir-entry-edit-delete" class="px-5 py-2.5 bg-red-50 text-red-700 border border-red-200 rounded-lg font-bold">Delete</button>
+                <button id="dir-entry-edit-save" class="btn-primary px-6 py-2.5 rounded-lg font-bold">Save</button>
+            </div>
+        </div>
+    </div>
+    <div id="academic-year-edit-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-md mx-auto bg-white relative">
+            <h3 class="text-lg font-bold mb-4 text-gray-900 border-b pb-2">Edit Academic Year</h3>
+            <input type="hidden" id="academic-year-edit-target-label">
+            <div class="space-y-3">
+                <div><label class="block text-sm font-semibold mb-1">Academic Year</label><input id="academic-year-edit-label" class="w-full p-2.5 border rounded-lg bg-gray-100" readonly></div>
+                <div><label class="block text-sm font-semibold mb-1">Start Month</label><select id="academic-year-edit-start-month" class="w-full p-2.5 border rounded-lg"></select></div>
+                <div><label class="block text-sm font-semibold mb-1">End Month</label><select id="academic-year-edit-end-month" class="w-full p-2.5 border rounded-lg"></select></div>
+                <div><label class="block text-sm font-semibold mb-1">Status</label><select id="academic-year-edit-status" class="w-full p-2.5 border rounded-lg"><option value="active">Active</option><option value="planning">Planning</option><option value="archived">Archived</option></select></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-5 pt-4 border-t">
+                <button id="academic-year-edit-cancel" class="px-5 py-2.5 bg-gray-200 rounded-lg font-bold">Cancel</button>
+                <button id="academic-year-edit-save" class="btn-primary px-6 py-2.5 rounded-lg font-bold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Group Modal -->
+    <div id="edit-group-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-md mx-auto bg-white relative">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">Edit Group</h3>
+            <input type="hidden" id="e-grp-id">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1 text-blue-700">Group Monthly Fee (₹)</label>
+                <input type="number" id="e-grp-fee" class="w-full p-2.5 border border-blue-300 rounded-lg bg-blue-50 font-bold">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-2">Members:</label>
+                <div id="e-grp-members" class="space-y-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50"></div>
+            </div>
+            <div class="mb-4 border border-blue-100 rounded-lg p-3 bg-blue-50/50">
+                <label class="block text-sm font-semibold mb-2 text-blue-800">Add Student to Group</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                    <select id="e-grp-class-filter" class="p-2.5 border rounded-lg bg-white text-sm font-semibold sm:col-span-2">
+                        <option value="">Select Class</option>
+                    </select>
+                    <select id="e-grp-gender-filter" class="p-2.5 border rounded-lg bg-white text-sm font-semibold">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <select id="e-grp-student-select" class="flex-grow p-2.5 border rounded-lg bg-white text-sm font-semibold">
+                        <option value="">Select Student...</option>
+                    </select>
+                    <button id="e-grp-add-member" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 text-sm">Add</button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Pick a class to support cross-class grouping while editing.</p>
+            </div>
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                <button id="edit-group-cancel" class="px-5 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="edit-group-update" class="btn-primary px-6 py-2.5 rounded-lg font-bold shadow-md">Update Group</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concession Modal -->
+    <div id="concession-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-auto bg-white relative">
+            <h3 class="text-xl font-bold mb-2 text-gray-900 border-b pb-2">Set Fee Concession</h3>
+            <p id="conc-student-name" class="font-bold text-blue-700 mb-4"></p>
+            <input type="hidden" id="conc-student-id">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1 text-green-700">Special Monthly Fee (₹)</label>
+                <p class="text-xs text-gray-500 mb-2">This overrides Default and Group fees for this student.</p>
+                <input type="number" id="conc-fee-amount" class="w-full p-2.5 border border-green-300 rounded-lg bg-green-50 font-bold text-lg" placeholder="Amount (e.g. 300)">
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <button id="conc-cancel" class="px-4 py-2 bg-gray-200 font-bold rounded-lg">Cancel</button>
+                <button id="conc-remove" class="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-lg hidden">Remove</button>
+                <button id="conc-save" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold shadow-md">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Advanced Fee Modal -->
+    <div id="edit-fee-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden z-[60] px-4">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-2xl mx-auto bg-white max-h-[90vh] overflow-y-auto relative">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">Edit Fee Item</h3>
+            <input type="hidden" id="e-fee-key">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div><label class="block text-sm font-semibold mb-1">Fee Item Name</label><input type="text" id="e-fee-name" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Fee Scope</label>
+                    <select id="e-fee-scope" class="w-full p-2.5 border rounded-lg font-medium text-blue-700 bg-gray-50">
+                        <option value="global">Global (Same for all classes)</option>
+                        <option value="class-wise">Class-wise (Different for each)</option>
+                        <option value="specific">Specific Class Only</option>
+                    </select>
+                </div>
+            </div>
+            <div id="e-scope-global-container" class="mb-4 bg-gray-50 p-3 rounded border">
+                <label class="block text-sm font-semibold mb-1">Global Amount (₹)</label>
+                <input type="number" id="e-fee-global-amt" class="w-full sm:w-1/2 p-2 border rounded-lg">
+            </div>
+            <div id="e-scope-class-wise-container" class="mb-4 bg-gray-50 p-3 rounded border hidden">
+                <label class="block text-sm font-semibold mb-2">Class-wise Amounts:</label>
+                <div id="e-class-wise-inputs" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+            </div>
+            <div id="e-scope-specific-container" class="mb-4 bg-gray-50 p-3 rounded border hidden">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-semibold mb-1">Target Class</label><select id="e-fee-specific-class" class="w-full p-2 border rounded-lg"></select></div>
+                    <div><label class="block text-sm font-semibold mb-1">Amount (₹)</label><input type="number" id="e-fee-specific-amt" class="w-full p-2 border rounded-lg"></div>
+                </div>
+            </div>
+            <div class="flex items-center justify-between bg-gray-50 p-3 rounded border mb-4">
+                <div><p class="text-sm font-bold text-gray-800">Is Receipt Number Mandatory?</p></div>
+                <div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in ml-4">
+                    <input type="checkbox" id="e-fee-receipt-req" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                    <label for="e-fee-receipt-req" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <button id="e-fee-cancel" class="px-5 py-2.5 bg-gray-200 rounded-lg font-bold">Cancel</button>
+                <button id="e-fee-update" class="btn-primary px-6 py-2.5 rounded-lg font-bold shadow-md">Update Fee Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Notice Modal -->
+    <div id="edit-notice-popup" class="fixed inset-0 popup-overlay items-center justify-center hidden px-4 z-50">
+        <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-md mx-auto bg-white relative">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">Edit Notice</h3>
+            <input type="hidden" id="e-not-idx">
+            <input type="text" id="e-not-head" class="w-full p-2.5 border rounded-lg mb-3 bg-gray-50" placeholder="Notice Heading">
+            <textarea id="e-not-txt" rows="7" class="w-full p-2.5 border rounded-lg mb-3 bg-gray-50 resize-y"></textarea>
+            <input type="date" id="e-not-dt" class="w-full p-2.5 border rounded-lg mb-4 bg-gray-50">
+            <label class="inline-flex items-center gap-2 text-sm font-semibold text-blue-900 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-4"><input type="checkbox" id="e-not-pin" class="w-4 h-4 rounded text-blue-600"> Pin notice</label>
+            <div class="flex justify-end gap-3">
+                <button id="e-not-cancel" class="px-4 py-2 bg-gray-200 rounded-lg font-bold">Cancel</button>
+                <button id="e-not-save" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">Update</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS ലിങ്ക് ചെയ്യുന്നു -->
+    <footer class="footer admin-footer">
+        <div class="copy">Admin Panel • <span id="footer-inst-name">Institution Name</span></div>
+        <div class="powered">Developed by <a href="https://www.instagram.com/muhammed_sanjide_p" target="_blank">HADI MAHIRI FAIZY</a></div>
+        <div class="app-version-meta">
+            <div id="footer-version">Version: --</div>
+            <div id="footer-updated">Last Updated: --</div>
+        </div>
+    </footer>
+
+    <script type="module" src="scripts/pages/admin-page.js"></script>
+
+</body>
+</html>
