@@ -259,6 +259,45 @@ body.collection-shell .fee-item-new-green {
     background-color: #dbeafe;
     color: #1e40af;
 }
+
+.official-sheet-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #dbe4f0;
+    border-radius: 14px;
+    background: #f8fafc;
+}
+.official-sheet-tool-btn {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.official-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 8px;
+}
+.official-field-pill {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 .drawer-heading { font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: #94a3b8; padding: 1.2rem 1rem 0.5rem 1rem; letter-spacing: 0.05em; }
 
 .upload-area { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 30px; text-align: center; transition: 0.3s; background: #f8fafc; cursor: pointer; }
