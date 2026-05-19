@@ -301,7 +301,12 @@ Persists edited values + metadata.
 - Manual drag resize for both columns and rows
 
 ### ⏭️ Next Stage (Advanced/Phase-2+)
-- Backend template save/update API integration (shared across devices/users).
-- Repeat-all-pages official header with institution logo in print engine.
-- Full rich-style parity in XLSX export (cell colors/fonts/borders/merge behavior).
-- Row virtualization/performance tuning for very large datasets.
+- ✅ Backend template save/update API integration hook added (`POST /api/worksheet/template`) with safe fallback to local storage.
+- ✅ Repeat-all-pages official header block added for print mode (logo + institution + heading).
+- ✅ XLSX rich styling baseline added (header fill/font/border + body grid borders/wrap alignment).
+- ✅ Row virtualization/performance window added for very large datasets in UI rendering.
+
+### 🔜 Remaining Advanced Enhancements
+- Server-side template retrieval/version history + conflict resolution.
+- Full cell-level style export parity (per-cell font/color/fill from UI rich formatting).
+- Virtual scrolling with dynamic row window (instead of fixed first-N render window).

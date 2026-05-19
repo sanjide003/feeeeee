@@ -46,6 +46,8 @@ const worksheetState = {
   isApplyingHistory: false
 };
 const WORKSHEET_TEMPLATE_KEY = 'official_worksheet_template_v1';
+const WORKSHEET_TEMPLATE_SYNC_ENDPOINT = '/api/worksheet/template';
+const WORKSHEET_VIRTUAL_WINDOW = 250;
 const cloneWorksheetState = () => JSON.parse(JSON.stringify({
   columns: worksheetState.columns,
   rows: worksheetState.rows,
@@ -547,6 +549,24 @@ const persistWorksheetTemplate = () => {
   };
   localStorage.setItem(WORKSHEET_TEMPLATE_KEY, JSON.stringify(payload));
 };
+const syncWorksheetTemplateToServer = async () => {
+  const payload = {
+    className: worksheetState.className,
+    sortBy: worksheetState.sortBy,
+    groupBy: worksheetState.groupBy,
+    heading: worksheetState.heading,
+    orientation: worksheetState.orientation,
+    margin: worksheetState.margin,
+    columns: worksheetState.columns
+  };
+  try {
+    await fetch(WORKSHEET_TEMPLATE_SYNC_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (_error) {}
+};
 const loadWorksheetTemplate = () => {
   try {
     const raw = localStorage.getItem(WORKSHEET_TEMPLATE_KEY);
@@ -579,8 +599,17 @@ const exportWorksheetXlsx = async () => {
     if (!ws['!cols']) ws['!cols'] = [];
     ws['!cols'][idx] = { wch: Math.max(10, Math.round((Number(col.width) || 150) / 10)) };
     const headAddr = `${key}1`;
-    if (ws[headAddr]) ws[headAddr].s = { font: { bold: true } };
+    if (ws[headAddr]) ws[headAddr].s = { font: { bold: true, color: { rgb: '1F2937' } }, fill: { fgColor: { rgb: 'E2E8F0' } }, border: { top: { style: 'thin', color: { rgb: 'CBD5E1' } }, left: { style: 'thin', color: { rgb: 'CBD5E1' } }, right: { style: 'thin', color: { rgb: 'CBD5E1' } }, bottom: { style: 'thin', color: { rgb: 'CBD5E1' } } } };
   });
+  for (let r = 2; r <= body.length + 1; r += 1) {
+    for (let c = 0; c < worksheetState.columns.length; c += 1) {
+      const addr = `${XLSX.utils.encode_col(c)}${r}`;
+      if (!ws[addr]) continue;
+      ws[addr].s = ws[addr].s || {};
+      ws[addr].s.border = { top: { style: 'thin', color: { rgb: 'E2E8F0' } }, left: { style: 'thin', color: { rgb: 'E2E8F0' } }, right: { style: 'thin', color: { rgb: 'E2E8F0' } }, bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } };
+      ws[addr].s.alignment = { vertical: 'top', wrapText: true };
+    }
+  }
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Worksheet');
   XLSX.writeFile(wb, `class-worksheet-${worksheetState.className || 'all'}.xlsx`);
@@ -597,6 +626,7 @@ const renderWorksheet = () => {
     while (n > 0) { const rem = (n - 1) % 26; out = String.fromCharCode(65 + rem) + out; n = Math.floor((n - 1) / 26); }
     return out;
   };
+  const visibleRows = worksheetState.rows.slice(0, WORKSHEET_VIRTUAL_WINDOW);
   pageEl.innerHTML = `
     <div class="card rounded-2xl shadow-sm p-3 sm:p-4 worksheet-shell ws-${worksheetState.orientation} ws-margin-${worksheetState.margin}">
       <div class="worksheet-tabbar"><button class="ws-tab active">Home</button><button class="ws-tab">Data</button><button class="ws-tab">Page Layout</button></div>
@@ -631,8 +661,9 @@ const renderWorksheet = () => {
       <div class="worksheet-grid-wrap"><table class="worksheet-grid"><thead>
       <tr><th class="corner-cell"></th>${worksheetState.columns.map((col, idx) => `<th class="ws-col-index" data-select-col="${idx}">${colLetter(idx)}</th>`).join('')}</tr>
       <tr><th>#</th>${worksheetState.columns.map((col, idx) => `<th style="min-width:${col.width}px" data-col="${idx}"><div class="ws-col-title">${escapeHtml(col.label)}</div>${col.editable ? `<select class="ws-col-source" data-col-source="${idx}"><option value="BLANK" ${col.source === 'BLANK' ? 'selected' : ''}>Blank</option><option value="CUSTOM" ${col.source === 'CUSTOM' ? 'selected' : ''}>Custom Heading</option>${fieldOptions.map((field) => `<option value="${escapeHtml(field)}" ${col.source === field ? 'selected' : ''}>${escapeHtml(toLabel(field))}</option>`).join('')}</select><input class="ws-col-input" data-col-heading="${idx}" value="${escapeHtml(col.label)}">` : ''}<div class="ws-resize-handle" data-resize-col="${idx}"></div></th>`).join('')}</tr></thead><tbody>
-      ${worksheetState.rows.map((row, rowIndex) => `<tr class="${worksheetState.groupBy === 'SEPARATE_PAGES' && rowIndex > 0 && row.gender !== worksheetState.rows[rowIndex - 1].gender ? 'ws-page-break' : ''}"><td class="ws-row-index" data-select-row="${rowIndex}">${rowIndex + 1}<div class="ws-row-resize" data-resize-row="${rowIndex}"></div></td>${worksheetState.columns.map((col, colIndex) => `<td class="ws-cell ${worksheetState.selected.row === rowIndex && worksheetState.selected.col === colIndex ? 'active' : ''}" data-row="${rowIndex}" data-col="${colIndex}" ${col.editable ? 'contenteditable="true"' : ''}>${escapeHtml(String(worksheetCellValue(row, col) || ''))}</td>`).join('')}</tr>`).join('')}
+      ${visibleRows.map((row, rowIndex) => `<tr class="${worksheetState.groupBy === 'SEPARATE_PAGES' && rowIndex > 0 && row.gender !== visibleRows[rowIndex - 1].gender ? 'ws-page-break' : ''}"><td class="ws-row-index" data-select-row="${rowIndex}">${rowIndex + 1}<div class="ws-row-resize" data-resize-row="${rowIndex}"></div></td>${worksheetState.columns.map((col, colIndex) => `<td class="ws-cell ${worksheetState.selected.row === rowIndex && worksheetState.selected.col === colIndex ? 'active' : ''}" data-row="${rowIndex}" data-col="${colIndex}" ${col.editable ? 'contenteditable="true"' : ''}>${escapeHtml(String(worksheetCellValue(row, col) || ''))}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div>
+      ${worksheetState.rows.length > WORKSHEET_VIRTUAL_WINDOW ? `<div class="ws-virtual-note">Showing first ${WORKSHEET_VIRTUAL_WINDOW} rows for performance. Full data is kept for export/print.</div>` : ''}
     </div>`;
   document.getElementById('ws-class')?.addEventListener('change', (e) => { worksheetState.className = e.target.value; renderWorksheet(); });
   document.getElementById('ws-sort')?.addEventListener('change', (e) => { worksheetState.sortBy = e.target.value; persistWorksheetTemplate(); renderWorksheet(); });
@@ -640,7 +671,7 @@ const renderWorksheet = () => {
   document.getElementById('ws-orientation')?.addEventListener('change', (e) => { worksheetState.orientation = e.target.value; persistWorksheetTemplate(); renderWorksheet(); });
   document.getElementById('ws-margin')?.addEventListener('change', (e) => { worksheetState.margin = e.target.value; persistWorksheetTemplate(); renderWorksheet(); });
   document.getElementById('ws-heading')?.addEventListener('input', (e) => { worksheetState.heading = e.target.value; persistWorksheetTemplate(); });
-  document.getElementById('ws-save-template')?.addEventListener('click', () => { persistWorksheetTemplate(); alert('Worksheet template saved.'); });
+  document.getElementById('ws-save-template')?.addEventListener('click', async () => { persistWorksheetTemplate(); await syncWorksheetTemplateToServer(); alert('Worksheet template saved.'); });
   document.getElementById('ws-add-col')?.addEventListener('click', () => {
     pushWorksheetHistory();
     worksheetState.columns.push({ key: `custom${Date.now()}`, label: 'New Column', width: 150, editable: true, source: 'CUSTOM' });
@@ -954,3 +985,10 @@ const restoreOfficialSession = async () => {
 
 preloadOfficialBranding();
 restoreOfficialSession();
+      <div class="worksheet-print-header">
+        <img src="${escapeHtml(rememberInstitutionLogo(institutionConfig.logoUrl || '') || 'assets/images/logo.png')}" onerror="this.style.display='none'" alt="logo">
+        <div>
+          <div class="title">${escapeHtml(resolveInstitutionName(institutionConfig) || 'Institution')}</div>
+          <div class="sub">${escapeHtml(worksheetState.heading || `Class ${worksheetState.className} Worksheet`)}</div>
+        </div>
+      </div>
