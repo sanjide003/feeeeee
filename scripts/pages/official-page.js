@@ -25,6 +25,23 @@ const officialFilters = {
   staffStatus: 'ALL',
   staffSearch: ''
 };
+const worksheetState = {
+  className: '',
+  sortBy: 'NAME_ASC',
+  groupBy: 'MIXED',
+  heading: '',
+  orientation: 'portrait',
+  margin: 'normal',
+  showHeader: true,
+  repeatHeader: true,
+  selected: { row: 0, col: 0 },
+  columns: [
+    { key: 'sno', label: 'S.No', width: 90, editable: false, source: 'AUTO_SNO' },
+    { key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' },
+    { key: 'custom1', label: 'Heading', width: 160, editable: true, source: 'CUSTOM' }
+  ],
+  rows: []
+};
 
 const resolveInstitutionName = (conf = {}) => String(
   conf.appName
@@ -467,10 +484,112 @@ const renderHome = () => {
     </div>`;
 };
 
+const getWorksheetClassOptions = () => [...new Set(allStudents.map(getStudentClass))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+const applyWorksheetClass = () => {
+  const classStudents = allStudents.filter((student) => !worksheetState.className || getStudentClass(student) === worksheetState.className);
+  const sorted = [...classStudents].sort((a, b) => {
+    if (worksheetState.sortBy === 'ADM_ASC') return String(a.adm || '').localeCompare(String(b.adm || ''), undefined, { numeric: true });
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+  let rows = sorted.map((student, index) => ({
+    studentId: student.id,
+    sno: index + 1,
+    name: student.name || '--',
+    gender: normalizeText(student.gender),
+    values: {}
+  }));
+  if (worksheetState.groupBy === 'BOYS_FIRST') rows = rows.sort((a, b) => (a.gender === 'male' ? -1 : 1) - (b.gender === 'male' ? -1 : 1));
+  if (worksheetState.groupBy === 'GIRLS_FIRST') rows = rows.sort((a, b) => (a.gender === 'female' ? -1 : 1) - (b.gender === 'female' ? -1 : 1));
+  rows.forEach((row, index) => { row.sno = index + 1; });
+  worksheetState.rows = rows;
+};
+const worksheetCellValue = (row, col) => {
+  if (col.key === 'sno') return row.sno;
+  if (col.key === 'name') return row.name;
+  return row.values?.[col.key] || '';
+};
+const setWorksheetCellValue = (rowIndex, colKey, value) => {
+  if (!worksheetState.rows[rowIndex]) return;
+  worksheetState.rows[rowIndex].values[colKey] = value;
+};
+const renderWorksheet = () => {
+  if (!worksheetState.className) worksheetState.className = getWorksheetClassOptions()[0] || '';
+  applyWorksheetClass();
+  const pageEl = document.getElementById('official-tab-worksheet');
+  const classOptions = getWorksheetClassOptions();
+  pageEl.innerHTML = `
+    <div class="card rounded-2xl shadow-sm p-3 sm:p-4 worksheet-shell">
+      <div class="worksheet-ribbon">
+        <div class="worksheet-group"><b>Data Source</b><select id="ws-class">${classOptions.map((item) => `<option value="${escapeHtml(item)}" ${worksheetState.className === item ? 'selected' : ''}>Class ${escapeHtml(item)}</option>`)}</select></div>
+        <div class="worksheet-group"><b>Sort</b><select id="ws-sort"><option value="NAME_ASC" ${worksheetState.sortBy === 'NAME_ASC' ? 'selected' : ''}>Name A-Z</option><option value="ADM_ASC" ${worksheetState.sortBy === 'ADM_ASC' ? 'selected' : ''}>Admission No</option></select></div>
+        <div class="worksheet-group"><b>Group</b><select id="ws-group"><option value="MIXED" ${worksheetState.groupBy === 'MIXED' ? 'selected' : ''}>Mixed</option><option value="BOYS_FIRST" ${worksheetState.groupBy === 'BOYS_FIRST' ? 'selected' : ''}>Boys First</option><option value="GIRLS_FIRST" ${worksheetState.groupBy === 'GIRLS_FIRST' ? 'selected' : ''}>Girls First</option></select></div>
+        <div class="worksheet-group"><b>Heading</b><input id="ws-heading" value="${escapeHtml(worksheetState.heading)}" placeholder="e.g. Term 1 Attendance"></div>
+        <button type="button" class="worksheet-btn" id="ws-add-col"><i class="fas fa-plus"></i> New Column</button>
+        <button type="button" class="worksheet-btn worksheet-btn-red" id="ws-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button type="button" class="worksheet-btn worksheet-btn-green" id="ws-xlsx"><i class="fas fa-file-excel"></i> Export Excel</button>
+      </div>
+      <div class="worksheet-formula">
+        <div class="name-box">${escapeHtml(String.fromCharCode(65 + worksheetState.selected.col))}${worksheetState.selected.row + 1}</div>
+        <input id="ws-formula" value="${escapeHtml(worksheetCellValue(worksheetState.rows[worksheetState.selected.row] || {}, worksheetState.columns[worksheetState.selected.col] || worksheetState.columns[0]) || '')}" />
+      </div>
+      <div class="worksheet-grid-wrap"><table class="worksheet-grid"><thead><tr><th>#</th>${worksheetState.columns.map((col, idx) => `<th style="min-width:${col.width}px" data-col="${idx}"><div class="ws-col-title">${escapeHtml(col.label)}</div>${col.editable ? `<input class="ws-col-input" data-col-heading="${idx}" value="${escapeHtml(col.label)}">` : ''}</th>`).join('')}</tr></thead><tbody>
+      ${worksheetState.rows.map((row, rowIndex) => `<tr><td>${rowIndex + 1}</td>${worksheetState.columns.map((col, colIndex) => `<td class="ws-cell ${worksheetState.selected.row === rowIndex && worksheetState.selected.col === colIndex ? 'active' : ''}" data-row="${rowIndex}" data-col="${colIndex}" ${col.editable ? 'contenteditable="true"' : ''}>${escapeHtml(String(worksheetCellValue(row, col) || ''))}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+  document.getElementById('ws-class')?.addEventListener('change', (e) => { worksheetState.className = e.target.value; renderWorksheet(); });
+  document.getElementById('ws-sort')?.addEventListener('change', (e) => { worksheetState.sortBy = e.target.value; renderWorksheet(); });
+  document.getElementById('ws-group')?.addEventListener('change', (e) => { worksheetState.groupBy = e.target.value; renderWorksheet(); });
+  document.getElementById('ws-heading')?.addEventListener('input', (e) => { worksheetState.heading = e.target.value; });
+  document.getElementById('ws-add-col')?.addEventListener('click', () => {
+    worksheetState.columns.push({ key: `custom${Date.now()}`, label: 'New Column', width: 150, editable: true, source: 'CUSTOM' });
+    renderWorksheet();
+  });
+  document.getElementById('ws-pdf')?.addEventListener('click', () => window.print());
+  document.getElementById('ws-xlsx')?.addEventListener('click', () => {
+    const headers = worksheetState.columns.map((col) => `"${String(col.label).replaceAll('"', '""')}"`).join(',');
+    const body = worksheetState.rows.map((row) => worksheetState.columns.map((col) => `"${String(worksheetCellValue(row, col) || '').replaceAll('"', '""')}"`).join(',')).join('\n');
+    const csv = `${headers}\n${body}`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `class-worksheet-${worksheetState.className || 'all'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.querySelectorAll('[data-col-heading]').forEach((input) => input.addEventListener('input', (e) => {
+    const index = Number(e.target.dataset.colHeading);
+    if (!worksheetState.columns[index] || !worksheetState.columns[index].editable) return;
+    worksheetState.columns[index].label = e.target.value || 'Column';
+    const titleEl = e.target.closest('th')?.querySelector('.ws-col-title');
+    if (titleEl) titleEl.textContent = worksheetState.columns[index].label;
+  }));
+  document.querySelectorAll('.ws-cell').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      worksheetState.selected = { row: Number(cell.dataset.row), col: Number(cell.dataset.col) };
+      renderWorksheet();
+    });
+    cell.addEventListener('input', () => {
+      const row = Number(cell.dataset.row);
+      const colIndex = Number(cell.dataset.col);
+      const col = worksheetState.columns[colIndex];
+      if (!col?.editable) return;
+      setWorksheetCellValue(row, col.key, cell.textContent || '');
+    });
+  });
+  document.getElementById('ws-formula')?.addEventListener('input', (e) => {
+    const col = worksheetState.columns[worksheetState.selected.col];
+    if (!col?.editable) return;
+    setWorksheetCellValue(worksheetState.selected.row, col.key, e.target.value || '');
+    renderWorksheet();
+  });
+};
+
 const renderAll = () => {
   renderDashboard();
   renderStudents();
   buildClassSummary();
+  renderWorksheet();
   renderStaffTab();
   renderHome();
 };
