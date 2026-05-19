@@ -275,8 +275,10 @@ body.collection-shell .fee-item-new-green {
 .worksheet-grid { width: 100%; border-collapse: collapse; min-width: 900px; }
 .worksheet-grid th, .worksheet-grid td { border: 1px solid #e2e8f0; padding: 7px 8px; font-size: 13px; }
 .worksheet-grid th { background: #f8fafc; position: sticky; top: 0; z-index: 2; }
+.worksheet-grid th { position: sticky; }
 .ws-col-title { font-weight: 800; margin-bottom: 4px; }
 .ws-col-input { width: 100%; border: 1px solid #dbe4f0; border-radius: 8px; font-size: 12px; padding: 4px 6px; }
+.ws-resize-handle { position: absolute; top: 0; right: -2px; width: 6px; height: 100%; cursor: col-resize; user-select: none; }
 .ws-cell.active { outline: 2px solid #15803d; outline-offset: -2px; background: #f0fdf4; }
 .ws-landscape .worksheet-grid { min-width: 1200px; }
 .ws-margin-narrow .worksheet-grid th, .ws-margin-narrow .worksheet-grid td { padding: 4px 5px; }

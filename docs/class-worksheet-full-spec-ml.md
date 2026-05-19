@@ -290,11 +290,14 @@ Persists edited values + metadata.
 - Undo / Redo (worksheet local history stack)
 - Print flow (`window.print`) for PDF save.
 - Excel-compatible export (CSV download)
+- True `.xlsx` export (SheetJS-based) with CSV fallback
 - Orientation + margin controls (UI + print-friendly spacing)
+- Column drag-resize with width persistence (template save)
+- Multi-cell clipboard paste (tab/newline matrix paste)
+- Local template save/restore (browser storage)
 
 ### ⏭️ Next Stage (Advanced/Phase-2+)
-- True `.xlsx` writer with full style preservation.
-- Column drag-resize with persistent widths.
-- Clipboard multi-cell paste parser (Excel matrix paste).
-- Template save/update API integration.
-- Header repeat with institution logo in paged print output.
+- Backend template save/update API integration (shared across devices/users).
+- Repeat-all-pages official header with institution logo in print engine.
+- Full rich-style parity in XLSX export (cell colors/fonts/borders/merge behavior).
+- Row virtualization/performance tuning for very large datasets.
