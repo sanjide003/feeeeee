@@ -278,6 +278,14 @@ body.collection-shell .fee-item-new-green {
 .ws-col-title { font-weight: 800; margin-bottom: 4px; }
 .ws-col-input { width: 100%; border: 1px solid #dbe4f0; border-radius: 8px; font-size: 12px; padding: 4px 6px; }
 .ws-cell.active { outline: 2px solid #15803d; outline-offset: -2px; background: #f0fdf4; }
+.ws-landscape .worksheet-grid { min-width: 1200px; }
+.ws-margin-narrow .worksheet-grid th, .ws-margin-narrow .worksheet-grid td { padding: 4px 5px; }
+.ws-margin-wide .worksheet-grid th, .ws-margin-wide .worksheet-grid td { padding: 10px 12px; }
+.ws-page-break td { border-top: 3px dashed #ef4444 !important; }
+@media print {
+  .worksheet-ribbon, .worksheet-formula { display: none !important; }
+  .ws-page-break { page-break-before: always; break-before: page; }
+}
 .drawer-heading { font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: #94a3b8; padding: 1.2rem 1rem 0.5rem 1rem; letter-spacing: 0.05em; }
 
 .upload-area { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 30px; text-align: center; transition: 0.3s; background: #f8fafc; cursor: pointer; }

@@ -40,7 +40,28 @@ const worksheetState = {
     { key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' },
     { key: 'custom1', label: 'Heading', width: 160, editable: true, source: 'CUSTOM' }
   ],
-  rows: []
+  rows: [],
+  history: [],
+  historyIndex: -1
+};
+const cloneWorksheetState = () => JSON.parse(JSON.stringify({
+  columns: worksheetState.columns,
+  rows: worksheetState.rows,
+  selected: worksheetState.selected
+}));
+const pushWorksheetHistory = () => {
+  const snap = cloneWorksheetState();
+  worksheetState.history = worksheetState.history.slice(0, worksheetState.historyIndex + 1);
+  worksheetState.history.push(snap);
+  worksheetState.historyIndex = worksheetState.history.length - 1;
+};
+const restoreWorksheetHistory = (index = 0) => {
+  const snap = worksheetState.history[index];
+  if (!snap) return;
+  worksheetState.columns = snap.columns;
+  worksheetState.rows = snap.rows;
+  worksheetState.selected = snap.selected;
+  worksheetState.historyIndex = index;
 };
 
 const resolveInstitutionName = (conf = {}) => String(
@@ -518,13 +539,20 @@ const renderWorksheet = () => {
   const pageEl = document.getElementById('official-tab-worksheet');
   const classOptions = getWorksheetClassOptions();
   pageEl.innerHTML = `
-    <div class="card rounded-2xl shadow-sm p-3 sm:p-4 worksheet-shell">
+    <div class="card rounded-2xl shadow-sm p-3 sm:p-4 worksheet-shell ws-${worksheetState.orientation} ws-margin-${worksheetState.margin}">
       <div class="worksheet-ribbon">
         <div class="worksheet-group"><b>Data Source</b><select id="ws-class">${classOptions.map((item) => `<option value="${escapeHtml(item)}" ${worksheetState.className === item ? 'selected' : ''}>Class ${escapeHtml(item)}</option>`)}</select></div>
         <div class="worksheet-group"><b>Sort</b><select id="ws-sort"><option value="NAME_ASC" ${worksheetState.sortBy === 'NAME_ASC' ? 'selected' : ''}>Name A-Z</option><option value="ADM_ASC" ${worksheetState.sortBy === 'ADM_ASC' ? 'selected' : ''}>Admission No</option></select></div>
-        <div class="worksheet-group"><b>Group</b><select id="ws-group"><option value="MIXED" ${worksheetState.groupBy === 'MIXED' ? 'selected' : ''}>Mixed</option><option value="BOYS_FIRST" ${worksheetState.groupBy === 'BOYS_FIRST' ? 'selected' : ''}>Boys First</option><option value="GIRLS_FIRST" ${worksheetState.groupBy === 'GIRLS_FIRST' ? 'selected' : ''}>Girls First</option></select></div>
+        <div class="worksheet-group"><b>Group</b><select id="ws-group"><option value="MIXED" ${worksheetState.groupBy === 'MIXED' ? 'selected' : ''}>Mixed</option><option value="BOYS_FIRST" ${worksheetState.groupBy === 'BOYS_FIRST' ? 'selected' : ''}>Boys First</option><option value="GIRLS_FIRST" ${worksheetState.groupBy === 'GIRLS_FIRST' ? 'selected' : ''}>Girls First</option><option value="SEPARATE_PAGES" ${worksheetState.groupBy === 'SEPARATE_PAGES' ? 'selected' : ''}>Separate Pages</option></select></div>
+        <div class="worksheet-group"><b>Orientation</b><select id="ws-orientation"><option value="portrait" ${worksheetState.orientation === 'portrait' ? 'selected' : ''}>Portrait</option><option value="landscape" ${worksheetState.orientation === 'landscape' ? 'selected' : ''}>Landscape</option></select></div>
+        <div class="worksheet-group"><b>Margin</b><select id="ws-margin"><option value="normal" ${worksheetState.margin === 'normal' ? 'selected' : ''}>Normal</option><option value="narrow" ${worksheetState.margin === 'narrow' ? 'selected' : ''}>Narrow</option><option value="wide" ${worksheetState.margin === 'wide' ? 'selected' : ''}>Wide</option></select></div>
         <div class="worksheet-group"><b>Heading</b><input id="ws-heading" value="${escapeHtml(worksheetState.heading)}" placeholder="e.g. Term 1 Attendance"></div>
         <button type="button" class="worksheet-btn" id="ws-add-col"><i class="fas fa-plus"></i> New Column</button>
+        <button type="button" class="worksheet-btn" id="ws-del-col"><i class="fas fa-minus"></i> Delete Column</button>
+        <button type="button" class="worksheet-btn" id="ws-add-row"><i class="fas fa-plus"></i> Add Row</button>
+        <button type="button" class="worksheet-btn" id="ws-del-row"><i class="fas fa-minus"></i> Delete Row</button>
+        <button type="button" class="worksheet-btn" id="ws-undo"><i class="fas fa-rotate-left"></i> Undo</button>
+        <button type="button" class="worksheet-btn" id="ws-redo"><i class="fas fa-rotate-right"></i> Redo</button>
         <button type="button" class="worksheet-btn worksheet-btn-red" id="ws-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
         <button type="button" class="worksheet-btn worksheet-btn-green" id="ws-xlsx"><i class="fas fa-file-excel"></i> Export Excel</button>
       </div>
@@ -533,15 +561,50 @@ const renderWorksheet = () => {
         <input id="ws-formula" value="${escapeHtml(worksheetCellValue(worksheetState.rows[worksheetState.selected.row] || {}, worksheetState.columns[worksheetState.selected.col] || worksheetState.columns[0]) || '')}" />
       </div>
       <div class="worksheet-grid-wrap"><table class="worksheet-grid"><thead><tr><th>#</th>${worksheetState.columns.map((col, idx) => `<th style="min-width:${col.width}px" data-col="${idx}"><div class="ws-col-title">${escapeHtml(col.label)}</div>${col.editable ? `<input class="ws-col-input" data-col-heading="${idx}" value="${escapeHtml(col.label)}">` : ''}</th>`).join('')}</tr></thead><tbody>
-      ${worksheetState.rows.map((row, rowIndex) => `<tr><td>${rowIndex + 1}</td>${worksheetState.columns.map((col, colIndex) => `<td class="ws-cell ${worksheetState.selected.row === rowIndex && worksheetState.selected.col === colIndex ? 'active' : ''}" data-row="${rowIndex}" data-col="${colIndex}" ${col.editable ? 'contenteditable="true"' : ''}>${escapeHtml(String(worksheetCellValue(row, col) || ''))}</td>`).join('')}</tr>`).join('')}
+      ${worksheetState.rows.map((row, rowIndex) => `<tr class="${worksheetState.groupBy === 'SEPARATE_PAGES' && rowIndex > 0 && row.gender !== worksheetState.rows[rowIndex - 1].gender ? 'ws-page-break' : ''}"><td>${rowIndex + 1}</td>${worksheetState.columns.map((col, colIndex) => `<td class="ws-cell ${worksheetState.selected.row === rowIndex && worksheetState.selected.col === colIndex ? 'active' : ''}" data-row="${rowIndex}" data-col="${colIndex}" ${col.editable ? 'contenteditable="true"' : ''}>${escapeHtml(String(worksheetCellValue(row, col) || ''))}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div>
     </div>`;
   document.getElementById('ws-class')?.addEventListener('change', (e) => { worksheetState.className = e.target.value; renderWorksheet(); });
   document.getElementById('ws-sort')?.addEventListener('change', (e) => { worksheetState.sortBy = e.target.value; renderWorksheet(); });
   document.getElementById('ws-group')?.addEventListener('change', (e) => { worksheetState.groupBy = e.target.value; renderWorksheet(); });
+  document.getElementById('ws-orientation')?.addEventListener('change', (e) => { worksheetState.orientation = e.target.value; renderWorksheet(); });
+  document.getElementById('ws-margin')?.addEventListener('change', (e) => { worksheetState.margin = e.target.value; renderWorksheet(); });
   document.getElementById('ws-heading')?.addEventListener('input', (e) => { worksheetState.heading = e.target.value; });
   document.getElementById('ws-add-col')?.addEventListener('click', () => {
+    pushWorksheetHistory();
     worksheetState.columns.push({ key: `custom${Date.now()}`, label: 'New Column', width: 150, editable: true, source: 'CUSTOM' });
+    renderWorksheet();
+  });
+  document.getElementById('ws-del-col')?.addEventListener('click', () => {
+    const col = worksheetState.columns[worksheetState.selected.col];
+    if (!col?.editable) return;
+    pushWorksheetHistory();
+    worksheetState.columns.splice(worksheetState.selected.col, 1);
+    worksheetState.rows.forEach((row) => { delete row.values[col.key]; });
+    worksheetState.selected.col = Math.max(0, worksheetState.selected.col - 1);
+    renderWorksheet();
+  });
+  document.getElementById('ws-add-row')?.addEventListener('click', () => {
+    pushWorksheetHistory();
+    worksheetState.rows.push({ studentId: `manual-${Date.now()}`, sno: worksheetState.rows.length + 1, name: 'Manual Row', gender: 'unknown', values: {} });
+    renderWorksheet();
+  });
+  document.getElementById('ws-del-row')?.addEventListener('click', () => {
+    if (!worksheetState.rows[worksheetState.selected.row]) return;
+    pushWorksheetHistory();
+    worksheetState.rows.splice(worksheetState.selected.row, 1);
+    worksheetState.rows.forEach((row, i) => { row.sno = i + 1; });
+    worksheetState.selected.row = Math.max(0, worksheetState.selected.row - 1);
+    renderWorksheet();
+  });
+  document.getElementById('ws-undo')?.addEventListener('click', () => {
+    if (worksheetState.historyIndex <= 0) return;
+    restoreWorksheetHistory(worksheetState.historyIndex - 1);
+    renderWorksheet();
+  });
+  document.getElementById('ws-redo')?.addEventListener('click', () => {
+    if (worksheetState.historyIndex >= worksheetState.history.length - 1) return;
+    restoreWorksheetHistory(worksheetState.historyIndex + 1);
     renderWorksheet();
   });
   document.getElementById('ws-pdf')?.addEventListener('click', () => window.print());
@@ -574,15 +637,18 @@ const renderWorksheet = () => {
       const colIndex = Number(cell.dataset.col);
       const col = worksheetState.columns[colIndex];
       if (!col?.editable) return;
+      pushWorksheetHistory();
       setWorksheetCellValue(row, col.key, cell.textContent || '');
     });
   });
   document.getElementById('ws-formula')?.addEventListener('input', (e) => {
     const col = worksheetState.columns[worksheetState.selected.col];
     if (!col?.editable) return;
+    pushWorksheetHistory();
     setWorksheetCellValue(worksheetState.selected.row, col.key, e.target.value || '');
     renderWorksheet();
   });
+  if (worksheetState.historyIndex < 0) pushWorksheetHistory();
 };
 
 const renderAll = () => {

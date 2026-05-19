@@ -272,3 +272,29 @@ Persists edited values + metadata.
 
 ## 19) Final Product Positioning
 ഈ ടാബ് ഒരു simple table അല്ല; ഇത് **School Office-ready Spreadsheet Workflow Engine** ആകണം. അങ്ങനെ design ചെയ്താൽ attendance sheet, mark list, fee report, exam register എന്നിവ ഒരേ എൻജിനിൽ നിന്നു generate ചെയ്യാൻ കഴിയും.
+
+---
+
+## 20) Implementation Status (Updated)
+
+### ✅ Phase-1 Completed in App
+- Official portal-ൽ `Class Worksheet` tab ചേർത്തു.
+- Class അടിസ്ഥാനമാക്കി roster auto-load.
+- Sorting: Name A-Z, Admission No.
+- Grouping: Mixed, Boys First, Girls First, Separate Pages.
+- Formula bar + active cell green selection.
+- Dynamic custom columns add/rename/edit.
+- Insert/Delete basic operations:
+  - Add Column / Delete selected custom column
+  - Add Row / Delete selected row
+- Undo / Redo (worksheet local history stack)
+- Print flow (`window.print`) for PDF save.
+- Excel-compatible export (CSV download)
+- Orientation + margin controls (UI + print-friendly spacing)
+
+### ⏭️ Next Stage (Advanced/Phase-2+)
+- True `.xlsx` writer with full style preservation.
+- Column drag-resize with persistent widths.
+- Clipboard multi-cell paste parser (Excel matrix paste).
+- Template save/update API integration.
+- Header repeat with institution logo in paged print output.
