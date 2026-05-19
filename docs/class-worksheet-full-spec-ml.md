@@ -295,6 +295,10 @@ Persists edited values + metadata.
 - Column drag-resize with width persistence (template save)
 - Multi-cell clipboard paste (tab/newline matrix paste)
 - Local template save/restore (browser storage)
+- Excel-style ribbon layout (Home/Data/Page Layout look), text formatting controls (font, size, bold, italic, underline, text color, fill color)
+- Spreadsheet index headers (A, B, C... and 1, 2, 3...) with row/column click selection support
+- Column field-source dropdown from selected class dataset + Blank + Custom Heading flow
+- Manual drag resize for both columns and rows
 
 ### ⏭️ Next Stage (Advanced/Phase-2+)
 - Backend template save/update API integration (shared across devices/users).

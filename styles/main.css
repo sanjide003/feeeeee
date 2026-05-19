@@ -261,6 +261,9 @@ body.collection-shell .fee-item-new-green {
 }
 
 .worksheet-shell { overflow: hidden; }
+.worksheet-tabbar { display:flex; gap:8px; border-bottom:1px solid #dbe4f0; margin-bottom:10px; padding-bottom:8px; }
+.ws-tab { border:1px solid #cbd5e1; background:#f8fafc; border-radius:10px; padding:6px 10px; font-weight:800; font-size:12px; }
+.ws-tab.active { background:#e0e7ff; border-color:#6366f1; color:#3730a3; }
 .worksheet-ribbon { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 10px; }
 .worksheet-group { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
 .worksheet-group b { font-size: 11px; color: #64748b; text-transform: uppercase; }
@@ -276,9 +279,13 @@ body.collection-shell .fee-item-new-green {
 .worksheet-grid th, .worksheet-grid td { border: 1px solid #e2e8f0; padding: 7px 8px; font-size: 13px; }
 .worksheet-grid th { background: #f8fafc; position: sticky; top: 0; z-index: 2; }
 .worksheet-grid th { position: sticky; }
+.ws-col-index, .ws-row-index, .corner-cell { background:#e2e8f0; font-weight:800; text-align:center; }
+.ws-row-index { position: relative; min-width: 44px; }
 .ws-col-title { font-weight: 800; margin-bottom: 4px; }
 .ws-col-input { width: 100%; border: 1px solid #dbe4f0; border-radius: 8px; font-size: 12px; padding: 4px 6px; }
+.ws-col-source { width:100%; border:1px solid #dbe4f0; border-radius:8px; font-size:12px; padding:4px 6px; margin-bottom:4px; }
 .ws-resize-handle { position: absolute; top: 0; right: -2px; width: 6px; height: 100%; cursor: col-resize; user-select: none; }
+.ws-row-resize { position:absolute; left:0; right:0; bottom:-2px; height:5px; cursor:row-resize; }
 .ws-cell.active { outline: 2px solid #15803d; outline-offset: -2px; background: #f0fdf4; }
 .ws-landscape .worksheet-grid { min-width: 1200px; }
 .ws-margin-narrow .worksheet-grid th, .ws-margin-narrow .worksheet-grid td { padding: 4px 5px; }

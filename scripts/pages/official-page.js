@@ -590,9 +590,24 @@ const renderWorksheet = () => {
   applyWorksheetClass();
   const pageEl = document.getElementById('official-tab-worksheet');
   const classOptions = getWorksheetClassOptions();
+  const classStudents = allStudents.filter((student) => getStudentClass(student) === worksheetState.className);
+  const fieldOptions = [...new Set(classStudents.flatMap((student) => Object.keys(student || {})))].filter((key) => !['id'].includes(key));
+  const colLetter = (index) => {
+    let n = index + 1; let out = '';
+    while (n > 0) { const rem = (n - 1) % 26; out = String.fromCharCode(65 + rem) + out; n = Math.floor((n - 1) / 26); }
+    return out;
+  };
   pageEl.innerHTML = `
     <div class="card rounded-2xl shadow-sm p-3 sm:p-4 worksheet-shell ws-${worksheetState.orientation} ws-margin-${worksheetState.margin}">
+      <div class="worksheet-tabbar"><button class="ws-tab active">Home</button><button class="ws-tab">Data</button><button class="ws-tab">Page Layout</button></div>
       <div class="worksheet-ribbon">
+        <div class="worksheet-group"><b>Font</b><select id="ws-font"><option>Arial</option><option>Calibri</option><option>Times New Roman</option><option>Verdana</option></select></div>
+        <div class="worksheet-group"><b>Size</b><select id="ws-font-size"><option>10</option><option selected>12</option><option>14</option><option>16</option><option>18</option></select></div>
+        <button type="button" class="worksheet-btn" id="ws-bold"><b>B</b></button>
+        <button type="button" class="worksheet-btn" id="ws-italic"><i>I</i></button>
+        <button type="button" class="worksheet-btn" id="ws-underline"><u>U</u></button>
+        <div class="worksheet-group"><b>Text Color</b><input type="color" id="ws-text-color" value="#111827"></div>
+        <div class="worksheet-group"><b>Fill Color</b><input type="color" id="ws-fill-color" value="#ffffff"></div>
         <div class="worksheet-group"><b>Data Source</b><select id="ws-class">${classOptions.map((item) => `<option value="${escapeHtml(item)}" ${worksheetState.className === item ? 'selected' : ''}>Class ${escapeHtml(item)}</option>`)}</select></div>
         <div class="worksheet-group"><b>Sort</b><select id="ws-sort"><option value="NAME_ASC" ${worksheetState.sortBy === 'NAME_ASC' ? 'selected' : ''}>Name A-Z</option><option value="ADM_ASC" ${worksheetState.sortBy === 'ADM_ASC' ? 'selected' : ''}>Admission No</option></select></div>
         <div class="worksheet-group"><b>Group</b><select id="ws-group"><option value="MIXED" ${worksheetState.groupBy === 'MIXED' ? 'selected' : ''}>Mixed</option><option value="BOYS_FIRST" ${worksheetState.groupBy === 'BOYS_FIRST' ? 'selected' : ''}>Boys First</option><option value="GIRLS_FIRST" ${worksheetState.groupBy === 'GIRLS_FIRST' ? 'selected' : ''}>Girls First</option><option value="SEPARATE_PAGES" ${worksheetState.groupBy === 'SEPARATE_PAGES' ? 'selected' : ''}>Separate Pages</option></select></div>
@@ -613,8 +628,10 @@ const renderWorksheet = () => {
         <div class="name-box">${escapeHtml(String.fromCharCode(65 + worksheetState.selected.col))}${worksheetState.selected.row + 1}</div>
         <input id="ws-formula" value="${escapeHtml(worksheetCellValue(worksheetState.rows[worksheetState.selected.row] || {}, worksheetState.columns[worksheetState.selected.col] || worksheetState.columns[0]) || '')}" />
       </div>
-      <div class="worksheet-grid-wrap"><table class="worksheet-grid"><thead><tr><th>#</th>${worksheetState.columns.map((col, idx) => `<th style="min-width:${col.width}px" data-col="${idx}"><div class="ws-col-title">${escapeHtml(col.label)}</div>${col.editable ? `<input class="ws-col-input" data-col-heading="${idx}" value="${escapeHtml(col.label)}">` : ''}<div class="ws-resize-handle" data-resize-col="${idx}"></div></th>`).join('')}</tr></thead><tbody>
-      ${worksheetState.rows.map((row, rowIndex) => `<tr class="${worksheetState.groupBy === 'SEPARATE_PAGES' && rowIndex > 0 && row.gender !== worksheetState.rows[rowIndex - 1].gender ? 'ws-page-break' : ''}"><td>${rowIndex + 1}</td>${worksheetState.columns.map((col, colIndex) => `<td class="ws-cell ${worksheetState.selected.row === rowIndex && worksheetState.selected.col === colIndex ? 'active' : ''}" data-row="${rowIndex}" data-col="${colIndex}" ${col.editable ? 'contenteditable="true"' : ''}>${escapeHtml(String(worksheetCellValue(row, col) || ''))}</td>`).join('')}</tr>`).join('')}
+      <div class="worksheet-grid-wrap"><table class="worksheet-grid"><thead>
+      <tr><th class="corner-cell"></th>${worksheetState.columns.map((col, idx) => `<th class="ws-col-index" data-select-col="${idx}">${colLetter(idx)}</th>`).join('')}</tr>
+      <tr><th>#</th>${worksheetState.columns.map((col, idx) => `<th style="min-width:${col.width}px" data-col="${idx}"><div class="ws-col-title">${escapeHtml(col.label)}</div>${col.editable ? `<select class="ws-col-source" data-col-source="${idx}"><option value="BLANK" ${col.source === 'BLANK' ? 'selected' : ''}>Blank</option><option value="CUSTOM" ${col.source === 'CUSTOM' ? 'selected' : ''}>Custom Heading</option>${fieldOptions.map((field) => `<option value="${escapeHtml(field)}" ${col.source === field ? 'selected' : ''}>${escapeHtml(toLabel(field))}</option>`).join('')}</select><input class="ws-col-input" data-col-heading="${idx}" value="${escapeHtml(col.label)}">` : ''}<div class="ws-resize-handle" data-resize-col="${idx}"></div></th>`).join('')}</tr></thead><tbody>
+      ${worksheetState.rows.map((row, rowIndex) => `<tr class="${worksheetState.groupBy === 'SEPARATE_PAGES' && rowIndex > 0 && row.gender !== worksheetState.rows[rowIndex - 1].gender ? 'ws-page-break' : ''}"><td class="ws-row-index" data-select-row="${rowIndex}">${rowIndex + 1}<div class="ws-row-resize" data-resize-row="${rowIndex}"></div></td>${worksheetState.columns.map((col, colIndex) => `<td class="ws-cell ${worksheetState.selected.row === rowIndex && worksheetState.selected.col === colIndex ? 'active' : ''}" data-row="${rowIndex}" data-col="${colIndex}" ${col.editable ? 'contenteditable="true"' : ''}>${escapeHtml(String(worksheetCellValue(row, col) || ''))}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div>
     </div>`;
   document.getElementById('ws-class')?.addEventListener('change', (e) => { worksheetState.className = e.target.value; renderWorksheet(); });
@@ -688,6 +705,34 @@ const renderWorksheet = () => {
     const titleEl = e.target.closest('th')?.querySelector('.ws-col-title');
     if (titleEl) titleEl.textContent = worksheetState.columns[index].label;
   }));
+  document.querySelectorAll('[data-col-source]').forEach((select) => select.addEventListener('change', (e) => {
+    const index = Number(e.target.dataset.colSource);
+    const source = e.target.value;
+    const col = worksheetState.columns[index];
+    if (!col || !col.editable) return;
+    col.source = source;
+    if (source !== 'CUSTOM' && source !== 'BLANK') {
+      col.label = toLabel(source);
+      worksheetState.rows.forEach((row) => {
+        const student = allStudents.find((s) => s.id === row.studentId) || {};
+        row.values[col.key] = student[source] ?? '';
+      });
+    }
+    if (source === 'BLANK') {
+      col.label = 'Blank';
+      worksheetState.rows.forEach((row) => { row.values[col.key] = ''; });
+    }
+    persistWorksheetTemplate();
+    renderWorksheet();
+  }));
+  document.querySelectorAll('[data-select-col]').forEach((th) => th.addEventListener('click', () => {
+    worksheetState.selected.col = Number(th.dataset.selectCol);
+    renderWorksheet();
+  }));
+  document.querySelectorAll('[data-select-row]').forEach((td) => td.addEventListener('click', () => {
+    worksheetState.selected.row = Number(td.dataset.selectRow);
+    renderWorksheet();
+  }));
   document.querySelectorAll('.ws-cell').forEach((cell) => {
     cell.addEventListener('click', () => {
       worksheetState.selected = { row: Number(cell.dataset.row), col: Number(cell.dataset.col) };
@@ -744,6 +789,33 @@ const renderWorksheet = () => {
       document.addEventListener('mouseup', up);
     });
   });
+  document.querySelectorAll('[data-resize-row]').forEach((handle) => {
+    handle.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      const tr = handle.closest('tr');
+      if (!tr) return;
+      const startY = event.clientY;
+      const startH = tr.getBoundingClientRect().height;
+      const move = (ev) => { tr.style.height = `${Math.max(26, startH + (ev.clientY - startY))}px`; };
+      const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    });
+  });
+  const applyTextStyle = (fn) => {
+    const cell = document.querySelector(`.ws-cell[data-row="${worksheetState.selected.row}"][data-col="${worksheetState.selected.col}"]`);
+    if (!cell) return;
+    fn(cell);
+    const col = worksheetState.columns[worksheetState.selected.col];
+    if (col?.editable) setWorksheetCellValue(worksheetState.selected.row, col.key, cell.innerHTML);
+  };
+  document.getElementById('ws-bold')?.addEventListener('click', () => applyTextStyle((cell) => { cell.style.fontWeight = cell.style.fontWeight === '700' ? '400' : '700'; }));
+  document.getElementById('ws-italic')?.addEventListener('click', () => applyTextStyle((cell) => { cell.style.fontStyle = cell.style.fontStyle === 'italic' ? 'normal' : 'italic'; }));
+  document.getElementById('ws-underline')?.addEventListener('click', () => applyTextStyle((cell) => { cell.style.textDecoration = cell.style.textDecoration === 'underline' ? 'none' : 'underline'; }));
+  document.getElementById('ws-font')?.addEventListener('change', (e) => applyTextStyle((cell) => { cell.style.fontFamily = e.target.value; }));
+  document.getElementById('ws-font-size')?.addEventListener('change', (e) => applyTextStyle((cell) => { cell.style.fontSize = `${e.target.value}px`; }));
+  document.getElementById('ws-text-color')?.addEventListener('input', (e) => applyTextStyle((cell) => { cell.style.color = e.target.value; }));
+  document.getElementById('ws-fill-color')?.addEventListener('input', (e) => applyTextStyle((cell) => { cell.style.backgroundColor = e.target.value; }));
   document.getElementById('ws-formula')?.addEventListener('input', (e) => {
     const col = worksheetState.columns[worksheetState.selected.col];
     if (!col?.editable) return;
