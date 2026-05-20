@@ -981,7 +981,8 @@ const tryLogin = async () => {
     const authConfigSnap = await getDoc(doc(db, `${BASE_PATH}/settings`, 'categoryAuthConfig'));
     const authConfig = authConfigSnap.exists() ? { categories: {}, ...(authConfigSnap.data() || {}) } : { categories: {} };
     const dirSnap = await getDocs(collection(db, `${BASE_PATH}/publicDirectory`));
-    const directoryUser = dirSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).find((entry) => {
+    let directoryUser = null;
+    for (const entry of dirSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))) {
       const meta = entry.authMeta || {};
       const categoryAuth = authConfig?.categories?.[entry.categoryId] || {};
       const usernameField = String(categoryAuth.usernameField || '').trim();
@@ -999,8 +1000,11 @@ const tryLogin = async () => {
         configuredPasswordRaw === password,
         configuredPasswordHash === passHash
       ].some(Boolean);
-      return userMatch && passMatch;
-    });
+      if (userMatch && passMatch) {
+        directoryUser = entry;
+        break;
+      }
+    }
     if (directoryUser) session = { id: directoryUser.id, ...(directoryUser.values || {}), name: String(directoryUser.values?.name || 'Directory User'), username, type: 'Category User', source: 'directory', categoryId: directoryUser.categoryId, photo: String(directoryUser.values?.photo || directoryUser.values?.image || '') };
   }
 
