@@ -3,8 +3,23 @@ import { doc, onSnapshot, collection, getDocs, writeBatch, setDoc, query, where,
 import { db, auth } from '../../config/firebase-config.js';
 import { ADMIN_AUTH_DOC_ID, SINGLE_ADMIN_MODE } from '../../config/app-config.js';
 import { BASE_PATH, applyInstitutionBranding, buildEmptyState, enableSmartSelectWindowing, escapeHtml, fitTextToContainer, formatCurrency, formatMonthLabel, hardenExternalLinks, registerServiceWorker, renderVersionInfo } from '../shared/app-common.js';
+import { appLog } from '../shared/logger.js';
+import { showToast } from '../shared/toaster.js';
+import { initCollectionEntryModule } from './collection/entry-module.js';
+import { initCollectionHistoryModule } from './collection/history-module.js';
+import { initCollectionReportsModule } from './collection/reports-module.js';
+import { initCollectionUploadModule } from './collection/upload-module.js';
+import { initCollectionSettingsModule } from './collection/settings-module.js';
 
 window.AppSession?.guardStaffPageAccess?.('collection');
+
+appLog('info', 'collection.bootstrap', 'Collection page loaded');
+window.notifyApp = (message = '', type = 'info') => showToast(message, type);
+initCollectionEntryModule();
+initCollectionHistoryModule();
+initCollectionReportsModule();
+initCollectionUploadModule();
+initCollectionSettingsModule();
 
 registerServiceWorker();
 hardenExternalLinks();

@@ -1,6 +1,8 @@
 import { signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
 import { db, auth } from '../../config/firebase-config.js';
 import { BASE_PATH, applyCachedInstitutionLogo, escapeHtml, rememberInstitutionLogo, sanitizeUrl } from '../shared/app-common.js';
+import { appLog } from '../shared/logger.js';
+import { showToast } from '../shared/toaster.js';
 import { collection, doc, getDoc, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 let allStudents = [];
@@ -16,6 +18,17 @@ let authReady = false;
 const OFFICIAL_SESSION_KEY = 'official_portal_session_v1';
 applyCachedInstitutionLogo(['header-logo', 'header-logo-right', 'official-login-modal-logo']);
 
+const OFFICIAL_TAB_LOADERS = {
+  dashboard: () => import('./official/dashboard-module.js').then((m) => m.loadOfficialDashboardModule?.()),
+  worksheet: () => import('./official/worksheet-module.js').then((m) => m.loadOfficialWorksheetModule?.())
+};
+const loadedOfficialTabs = new Set();
+const lazyLoadOfficialTab = async (tab = '') => {
+  const loader = OFFICIAL_TAB_LOADERS[tab];
+  if (!loader || loadedOfficialTabs.has(tab)) return;
+  await loader();
+  loadedOfficialTabs.add(tab);
+};
 const officialFilters = {
   studentClass: '',
   studentGender: 'ALL',
@@ -102,7 +115,8 @@ const hashCredentialValue = async (rawValue = '') => {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 };
 
-const showMsg = (m = '') => { document.getElementById('official-login-msg').textContent = m; };
+const showMsg = (m = '', type = 'error') => { document.getElementById('official-login-msg').textContent = m; if (m) showToast(m, type); };
+appLog('info', 'official.bootstrap', 'Official page initialized');
 const toLabel = (key = '') => String(key || '').replace(/([A-Z])/g, ' $1').replace(/[_.-]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^\w/, (c) => c.toUpperCase());
 const normalizeText = (value = '') => String(value || '').trim().toLowerCase();
 const formatDate = (value = '') => {
@@ -149,7 +163,8 @@ const setMobileMenuState = (isOpen) => {
   mobileToggle?.classList.toggle('active-toggle', isOpen);
   mobileToggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 };
-const setTab = (tab = 'dashboard') => {
+const setTab = async (tab = 'dashboard') => {
+  await lazyLoadOfficialTab(tab);
   const requested = document.getElementById(`official-tab-${tab}`) ? tab : 'dashboard';
   const target = document.getElementById(`official-tab-${requested}`) ? requested : 'students';
   document.querySelectorAll('.official-tab').forEach((el) => el.classList.add('hidden'));
