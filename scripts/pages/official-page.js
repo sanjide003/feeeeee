@@ -25,6 +25,48 @@ const officialFilters = {
   staffStatus: 'ALL',
   staffSearch: ''
 };
+const worksheetState = {
+  className: '',
+  sortBy: 'NAME_ASC',
+  groupBy: 'MIXED',
+  heading: '',
+  orientation: 'portrait',
+  margin: 'normal',
+  showHeader: true,
+  repeatHeader: true,
+  selected: { row: 0, col: 0 },
+  columns: [
+    { key: 'sno', label: 'S.No', width: 90, editable: false, source: 'AUTO_SNO' },
+    { key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' },
+    { key: 'custom1', label: 'Heading', width: 160, editable: true, source: 'CUSTOM' }
+  ],
+  rows: [],
+  history: [],
+  historyIndex: -1,
+  isApplyingHistory: false
+};
+const WORKSHEET_TEMPLATE_KEY = 'official_worksheet_template_v1';
+const WORKSHEET_TEMPLATE_SYNC_ENDPOINT = '/api/worksheet/template';
+const WORKSHEET_VIRTUAL_WINDOW = 250;
+const cloneWorksheetState = () => JSON.parse(JSON.stringify({
+  columns: worksheetState.columns,
+  rows: worksheetState.rows,
+  selected: worksheetState.selected
+}));
+const pushWorksheetHistory = () => {
+  const snap = cloneWorksheetState();
+  worksheetState.history = worksheetState.history.slice(0, worksheetState.historyIndex + 1);
+  worksheetState.history.push(snap);
+  worksheetState.historyIndex = worksheetState.history.length - 1;
+};
+const restoreWorksheetHistory = (index = 0) => {
+  const snap = worksheetState.history[index];
+  if (!snap) return;
+  worksheetState.columns = snap.columns;
+  worksheetState.rows = snap.rows;
+  worksheetState.selected = snap.selected;
+  worksheetState.historyIndex = index;
+};
 
 const resolveInstitutionName = (conf = {}) => String(
   conf.appName
@@ -467,10 +509,391 @@ const renderHome = () => {
     </div>`;
 };
 
+const getWorksheetClassOptions = () => [...new Set(allStudents.map(getStudentClass))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+const applyWorksheetClass = () => {
+  const classStudents = allStudents.filter((student) => !worksheetState.className || getStudentClass(student) === worksheetState.className);
+  const sorted = [...classStudents].sort((a, b) => {
+    if (worksheetState.sortBy === 'ADM_ASC') return String(a.adm || '').localeCompare(String(b.adm || ''), undefined, { numeric: true });
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+  let rows = sorted.map((student, index) => ({
+    studentId: student.id,
+    sno: index + 1,
+    name: student.name || '--',
+    gender: normalizeText(student.gender),
+    values: {}
+  }));
+  if (worksheetState.groupBy === 'BOYS_FIRST') rows = rows.sort((a, b) => (a.gender === 'male' ? -1 : 1) - (b.gender === 'male' ? -1 : 1));
+  if (worksheetState.groupBy === 'GIRLS_FIRST') rows = rows.sort((a, b) => (a.gender === 'female' ? -1 : 1) - (b.gender === 'female' ? -1 : 1));
+  rows.forEach((row, index) => { row.sno = index + 1; });
+  worksheetState.rows = rows;
+};
+const worksheetCellValue = (row, col) => {
+  if (!col || !row) return '';
+  if (col.key === 'sno') return row.sno;
+  if (col.key === 'name') return row.name;
+  return row.values?.[col.key] || '';
+};
+const setWorksheetCellValue = (rowIndex, colKey, value) => {
+  if (!worksheetState.rows[rowIndex]) return;
+  worksheetState.rows[rowIndex].values[colKey] = value;
+};
+const persistWorksheetTemplate = () => {
+  const payload = {
+    className: worksheetState.className,
+    sortBy: worksheetState.sortBy,
+    groupBy: worksheetState.groupBy,
+    heading: worksheetState.heading,
+    orientation: worksheetState.orientation,
+    margin: worksheetState.margin,
+    columns: worksheetState.columns
+  };
+  localStorage.setItem(WORKSHEET_TEMPLATE_KEY, JSON.stringify(payload));
+};
+const syncWorksheetTemplateToServer = async () => {
+  const payload = {
+    className: worksheetState.className,
+    sortBy: worksheetState.sortBy,
+    groupBy: worksheetState.groupBy,
+    heading: worksheetState.heading,
+    orientation: worksheetState.orientation,
+    margin: worksheetState.margin,
+    columns: worksheetState.columns
+  };
+  try {
+    await fetch(WORKSHEET_TEMPLATE_SYNC_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (_error) {}
+};
+const loadWorksheetTemplate = () => {
+  try {
+    const raw = localStorage.getItem(WORKSHEET_TEMPLATE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    worksheetState.className = parsed.className || worksheetState.className;
+    worksheetState.sortBy = parsed.sortBy || worksheetState.sortBy;
+    worksheetState.groupBy = parsed.groupBy || worksheetState.groupBy;
+    worksheetState.heading = parsed.heading || worksheetState.heading;
+    worksheetState.orientation = parsed.orientation || worksheetState.orientation;
+    worksheetState.margin = parsed.margin || worksheetState.margin;
+    if (Array.isArray(parsed.columns) && parsed.columns.length >= 2) {
+      const normalized = parsed.columns.map((col, idx) => ({
+        key: col.key || `custom_restored_${idx}`,
+        label: col.label || `Column ${idx + 1}`,
+        width: Number(col.width || 150),
+        editable: col.editable !== false,
+        source: col.source || 'CUSTOM'
+      }));
+      const hasSerial = normalized.some((col) => col.key === 'sno');
+      const hasName = normalized.some((col) => col.key === 'name');
+      worksheetState.columns = [
+        ...(hasSerial ? [] : [{ key: 'sno', label: 'S.No', width: 90, editable: false, source: 'AUTO_SNO' }]),
+        ...(hasName ? [] : [{ key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' }]),
+        ...normalized
+      ];
+    }
+  } catch (_error) {
+    localStorage.removeItem(WORKSHEET_TEMPLATE_KEY);
+  }
+};
+const exportWorksheetXlsx = async () => {
+  const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs');
+  const header = worksheetState.columns.map((col) => col.label);
+  const body = worksheetState.rows.map((row) => worksheetState.columns.map((col) => worksheetCellValue(row, col)));
+  const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+  worksheetState.columns.forEach((col, idx) => {
+    const key = XLSX.utils.encode_col(idx);
+    if (!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'][idx] = { wch: Math.max(10, Math.round((Number(col.width) || 150) / 10)) };
+    const headAddr = `${key}1`;
+    if (ws[headAddr]) ws[headAddr].s = { font: { bold: true, color: { rgb: '1F2937' } }, fill: { fgColor: { rgb: 'E2E8F0' } }, border: { top: { style: 'thin', color: { rgb: 'CBD5E1' } }, left: { style: 'thin', color: { rgb: 'CBD5E1' } }, right: { style: 'thin', color: { rgb: 'CBD5E1' } }, bottom: { style: 'thin', color: { rgb: 'CBD5E1' } } } };
+  });
+  for (let r = 2; r <= body.length + 1; r += 1) {
+    for (let c = 0; c < worksheetState.columns.length; c += 1) {
+      const addr = `${XLSX.utils.encode_col(c)}${r}`;
+      if (!ws[addr]) continue;
+      ws[addr].s = ws[addr].s || {};
+      ws[addr].s.border = { top: { style: 'thin', color: { rgb: 'E2E8F0' } }, left: { style: 'thin', color: { rgb: 'E2E8F0' } }, right: { style: 'thin', color: { rgb: 'E2E8F0' } }, bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } };
+      ws[addr].s.alignment = { vertical: 'top', wrapText: true };
+    }
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Worksheet');
+  XLSX.writeFile(wb, `class-worksheet-${worksheetState.className || 'all'}.xlsx`);
+};
+const renderWorksheet = () => {
+  if (!Array.isArray(worksheetState.columns) || worksheetState.columns.length < 2) {
+    worksheetState.columns = [
+      { key: 'sno', label: 'S.No', width: 90, editable: false, source: 'AUTO_SNO' },
+      { key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' },
+      { key: 'custom1', label: 'Heading', width: 160, editable: true, source: 'CUSTOM' }
+    ];
+  }
+  if (worksheetState.selected.col >= worksheetState.columns.length) worksheetState.selected.col = 0;
+  if (worksheetState.selected.row < 0) worksheetState.selected.row = 0;
+  if (!worksheetState.className) worksheetState.className = getWorksheetClassOptions()[0] || '';
+  applyWorksheetClass();
+  const pageEl = document.getElementById('official-tab-worksheet');
+  const classOptions = getWorksheetClassOptions();
+  const classStudents = allStudents.filter((student) => getStudentClass(student) === worksheetState.className);
+  const fieldOptions = [...new Set(classStudents.flatMap((student) => Object.keys(student || {})))].filter((key) => !['id'].includes(key));
+  const colLetter = (index) => {
+    let n = index + 1; let out = '';
+    while (n > 0) { const rem = (n - 1) % 26; out = String.fromCharCode(65 + rem) + out; n = Math.floor((n - 1) / 26); }
+    return out;
+  };
+  const visibleRows = worksheetState.rows.slice(0, WORKSHEET_VIRTUAL_WINDOW);
+  pageEl.innerHTML = `
+    <div class="card rounded-2xl shadow-sm p-3 sm:p-4 worksheet-shell ws-${worksheetState.orientation} ws-margin-${worksheetState.margin}">
+      <div class="worksheet-tabbar"><button class="ws-tab active">Home</button><button class="ws-tab">Data</button><button class="ws-tab">Page Layout</button></div>
+      <div class="worksheet-ribbon">
+        <div class="worksheet-group"><b>Font</b><select id="ws-font"><option>Arial</option><option>Calibri</option><option>Times New Roman</option><option>Verdana</option></select></div>
+        <div class="worksheet-group"><b>Size</b><select id="ws-font-size"><option>10</option><option selected>12</option><option>14</option><option>16</option><option>18</option></select></div>
+        <button type="button" class="worksheet-btn" id="ws-bold"><b>B</b></button>
+        <button type="button" class="worksheet-btn" id="ws-italic"><i>I</i></button>
+        <button type="button" class="worksheet-btn" id="ws-underline"><u>U</u></button>
+        <div class="worksheet-group"><b>Text Color</b><input type="color" id="ws-text-color" value="#111827"></div>
+        <div class="worksheet-group"><b>Fill Color</b><input type="color" id="ws-fill-color" value="#ffffff"></div>
+        <div class="worksheet-group"><b>Data Source</b><select id="ws-class">${classOptions.map((item) => `<option value="${escapeHtml(item)}" ${worksheetState.className === item ? 'selected' : ''}>Class ${escapeHtml(item)}</option>`)}</select></div>
+        <div class="worksheet-group"><b>Sort</b><select id="ws-sort"><option value="NAME_ASC" ${worksheetState.sortBy === 'NAME_ASC' ? 'selected' : ''}>Name A-Z</option><option value="ADM_ASC" ${worksheetState.sortBy === 'ADM_ASC' ? 'selected' : ''}>Admission No</option></select></div>
+        <div class="worksheet-group"><b>Group</b><select id="ws-group"><option value="MIXED" ${worksheetState.groupBy === 'MIXED' ? 'selected' : ''}>Mixed</option><option value="BOYS_FIRST" ${worksheetState.groupBy === 'BOYS_FIRST' ? 'selected' : ''}>Boys First</option><option value="GIRLS_FIRST" ${worksheetState.groupBy === 'GIRLS_FIRST' ? 'selected' : ''}>Girls First</option><option value="SEPARATE_PAGES" ${worksheetState.groupBy === 'SEPARATE_PAGES' ? 'selected' : ''}>Separate Pages</option></select></div>
+        <div class="worksheet-group"><b>Orientation</b><select id="ws-orientation"><option value="portrait" ${worksheetState.orientation === 'portrait' ? 'selected' : ''}>Portrait</option><option value="landscape" ${worksheetState.orientation === 'landscape' ? 'selected' : ''}>Landscape</option></select></div>
+        <div class="worksheet-group"><b>Margin</b><select id="ws-margin"><option value="normal" ${worksheetState.margin === 'normal' ? 'selected' : ''}>Normal</option><option value="narrow" ${worksheetState.margin === 'narrow' ? 'selected' : ''}>Narrow</option><option value="wide" ${worksheetState.margin === 'wide' ? 'selected' : ''}>Wide</option></select></div>
+        <div class="worksheet-group"><b>Heading</b><input id="ws-heading" value="${escapeHtml(worksheetState.heading)}" placeholder="e.g. Term 1 Attendance"></div>
+        <button type="button" class="worksheet-btn" id="ws-save-template"><i class="fas fa-floppy-disk"></i> Save Template</button>
+        <button type="button" class="worksheet-btn" id="ws-add-col"><i class="fas fa-plus"></i> New Column</button>
+        <button type="button" class="worksheet-btn" id="ws-del-col"><i class="fas fa-minus"></i> Delete Column</button>
+        <button type="button" class="worksheet-btn" id="ws-add-row"><i class="fas fa-plus"></i> Add Row</button>
+        <button type="button" class="worksheet-btn" id="ws-del-row"><i class="fas fa-minus"></i> Delete Row</button>
+        <button type="button" class="worksheet-btn" id="ws-undo"><i class="fas fa-rotate-left"></i> Undo</button>
+        <button type="button" class="worksheet-btn" id="ws-redo"><i class="fas fa-rotate-right"></i> Redo</button>
+        <button type="button" class="worksheet-btn worksheet-btn-red" id="ws-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button type="button" class="worksheet-btn worksheet-btn-green" id="ws-xlsx"><i class="fas fa-file-excel"></i> Export Excel</button>
+      </div>
+      <div class="worksheet-formula">
+        <div class="name-box">${escapeHtml(String.fromCharCode(65 + worksheetState.selected.col))}${worksheetState.selected.row + 1}</div>
+        <input id="ws-formula" value="${escapeHtml(worksheetCellValue(worksheetState.rows[worksheetState.selected.row] || {}, worksheetState.columns[worksheetState.selected.col] || worksheetState.columns[0]) || '')}" />
+      </div>
+      <div class="worksheet-grid-wrap"><table class="worksheet-grid"><thead>
+      <tr><th class="corner-cell"></th>${worksheetState.columns.map((col, idx) => `<th class="ws-col-index" data-select-col="${idx}">${colLetter(idx)}</th>`).join('')}</tr>
+      <tr><th>#</th>${worksheetState.columns.map((col, idx) => `<th style="min-width:${col.width}px" data-col="${idx}"><div class="ws-col-title">${escapeHtml(col.label)}</div>${col.editable ? `<select class="ws-col-source" data-col-source="${idx}"><option value="BLANK" ${col.source === 'BLANK' ? 'selected' : ''}>Blank</option><option value="CUSTOM" ${col.source === 'CUSTOM' ? 'selected' : ''}>Custom Heading</option>${fieldOptions.map((field) => `<option value="${escapeHtml(field)}" ${col.source === field ? 'selected' : ''}>${escapeHtml(toLabel(field))}</option>`).join('')}</select><input class="ws-col-input" data-col-heading="${idx}" value="${escapeHtml(col.label)}">` : ''}<div class="ws-resize-handle" data-resize-col="${idx}"></div></th>`).join('')}</tr></thead><tbody>
+      ${visibleRows.map((row, rowIndex) => `<tr class="${worksheetState.groupBy === 'SEPARATE_PAGES' && rowIndex > 0 && row.gender !== visibleRows[rowIndex - 1].gender ? 'ws-page-break' : ''}"><td class="ws-row-index" data-select-row="${rowIndex}">${rowIndex + 1}<div class="ws-row-resize" data-resize-row="${rowIndex}"></div></td>${worksheetState.columns.map((col, colIndex) => `<td class="ws-cell ${worksheetState.selected.row === rowIndex && worksheetState.selected.col === colIndex ? 'active' : ''}" data-row="${rowIndex}" data-col="${colIndex}" ${col.editable ? 'contenteditable="true"' : ''}>${escapeHtml(String(worksheetCellValue(row, col) || ''))}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div>
+      ${worksheetState.rows.length > WORKSHEET_VIRTUAL_WINDOW ? `<div class="ws-virtual-note">Showing first ${WORKSHEET_VIRTUAL_WINDOW} rows for performance. Full data is kept for export/print.</div>` : ''}
+    </div>`;
+  document.getElementById('ws-class')?.addEventListener('change', (e) => { worksheetState.className = e.target.value; renderWorksheet(); });
+  document.getElementById('ws-sort')?.addEventListener('change', (e) => { worksheetState.sortBy = e.target.value; persistWorksheetTemplate(); renderWorksheet(); });
+  document.getElementById('ws-group')?.addEventListener('change', (e) => { worksheetState.groupBy = e.target.value; persistWorksheetTemplate(); renderWorksheet(); });
+  document.getElementById('ws-orientation')?.addEventListener('change', (e) => { worksheetState.orientation = e.target.value; persistWorksheetTemplate(); renderWorksheet(); });
+  document.getElementById('ws-margin')?.addEventListener('change', (e) => { worksheetState.margin = e.target.value; persistWorksheetTemplate(); renderWorksheet(); });
+  document.getElementById('ws-heading')?.addEventListener('input', (e) => { worksheetState.heading = e.target.value; persistWorksheetTemplate(); });
+  document.getElementById('ws-save-template')?.addEventListener('click', async () => { persistWorksheetTemplate(); await syncWorksheetTemplateToServer(); alert('Worksheet template saved.'); });
+  document.getElementById('ws-add-col')?.addEventListener('click', () => {
+    pushWorksheetHistory();
+    worksheetState.columns.push({ key: `custom${Date.now()}`, label: 'New Column', width: 150, editable: true, source: 'CUSTOM' });
+    persistWorksheetTemplate();
+    renderWorksheet();
+  });
+  document.getElementById('ws-del-col')?.addEventListener('click', () => {
+    const col = worksheetState.columns[worksheetState.selected.col];
+    if (!col?.editable) return;
+    pushWorksheetHistory();
+    worksheetState.columns.splice(worksheetState.selected.col, 1);
+    worksheetState.rows.forEach((row) => { delete row.values[col.key]; });
+    worksheetState.selected.col = Math.max(0, worksheetState.selected.col - 1);
+    persistWorksheetTemplate();
+    renderWorksheet();
+  });
+  document.getElementById('ws-add-row')?.addEventListener('click', () => {
+    pushWorksheetHistory();
+    worksheetState.rows.push({ studentId: `manual-${Date.now()}`, sno: worksheetState.rows.length + 1, name: 'Manual Row', gender: 'unknown', values: {} });
+    renderWorksheet();
+  });
+  document.getElementById('ws-del-row')?.addEventListener('click', () => {
+    if (!worksheetState.rows[worksheetState.selected.row]) return;
+    pushWorksheetHistory();
+    worksheetState.rows.splice(worksheetState.selected.row, 1);
+    worksheetState.rows.forEach((row, i) => { row.sno = i + 1; });
+    worksheetState.selected.row = Math.max(0, worksheetState.selected.row - 1);
+    renderWorksheet();
+  });
+  document.getElementById('ws-undo')?.addEventListener('click', () => {
+    if (worksheetState.historyIndex <= 0) return;
+    restoreWorksheetHistory(worksheetState.historyIndex - 1);
+    renderWorksheet();
+  });
+  document.getElementById('ws-redo')?.addEventListener('click', () => {
+    if (worksheetState.historyIndex >= worksheetState.history.length - 1) return;
+    restoreWorksheetHistory(worksheetState.historyIndex + 1);
+    renderWorksheet();
+  });
+  document.getElementById('ws-pdf')?.addEventListener('click', () => window.print());
+  document.getElementById('ws-xlsx')?.addEventListener('click', async () => {
+    try {
+      await exportWorksheetXlsx();
+    } catch (_err) {
+      const headers = worksheetState.columns.map((col) => `"${String(col.label).replaceAll('"', '""')}"`).join(',');
+      const body = worksheetState.rows.map((row) => worksheetState.columns.map((col) => `"${String(worksheetCellValue(row, col) || '').replaceAll('"', '""')}"`).join(',')).join('\n');
+      const csv = `${headers}\n${body}`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `class-worksheet-${worksheetState.className || 'all'}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+  document.querySelectorAll('[data-col-heading]').forEach((input) => input.addEventListener('input', (e) => {
+    const index = Number(e.target.dataset.colHeading);
+    if (!worksheetState.columns[index] || !worksheetState.columns[index].editable) return;
+    worksheetState.columns[index].label = e.target.value || 'Column';
+    persistWorksheetTemplate();
+    const titleEl = e.target.closest('th')?.querySelector('.ws-col-title');
+    if (titleEl) titleEl.textContent = worksheetState.columns[index].label;
+  }));
+  document.querySelectorAll('[data-col-source]').forEach((select) => select.addEventListener('change', (e) => {
+    const index = Number(e.target.dataset.colSource);
+    const source = e.target.value;
+    const col = worksheetState.columns[index];
+    if (!col || !col.editable) return;
+    col.source = source;
+    if (source !== 'CUSTOM' && source !== 'BLANK') {
+      col.label = toLabel(source);
+      worksheetState.rows.forEach((row) => {
+        const student = allStudents.find((s) => s.id === row.studentId) || {};
+        row.values[col.key] = student[source] ?? '';
+      });
+    }
+    if (source === 'BLANK') {
+      col.label = 'Blank';
+      worksheetState.rows.forEach((row) => { row.values[col.key] = ''; });
+    }
+    persistWorksheetTemplate();
+    renderWorksheet();
+  }));
+  document.querySelectorAll('[data-select-col]').forEach((th) => th.addEventListener('click', () => {
+    worksheetState.selected.col = Number(th.dataset.selectCol);
+    renderWorksheet();
+  }));
+  document.querySelectorAll('[data-select-row]').forEach((td) => td.addEventListener('click', () => {
+    worksheetState.selected.row = Number(td.dataset.selectRow);
+    renderWorksheet();
+  }));
+  document.querySelectorAll('.ws-cell').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      worksheetState.selected = { row: Number(cell.dataset.row), col: Number(cell.dataset.col) };
+      renderWorksheet();
+    });
+    cell.addEventListener('input', () => {
+      const row = Number(cell.dataset.row);
+      const colIndex = Number(cell.dataset.col);
+      const col = worksheetState.columns[colIndex];
+      if (!col?.editable) return;
+      pushWorksheetHistory();
+      setWorksheetCellValue(row, col.key, cell.textContent || '');
+    });
+    cell.addEventListener('paste', (event) => {
+      const paste = event.clipboardData?.getData('text/plain') || '';
+      if (!paste.includes('\n') && !paste.includes('\t')) return;
+      event.preventDefault();
+      const startRow = Number(cell.dataset.row);
+      const startCol = Number(cell.dataset.col);
+      const rows = paste.split(/\r?\n/).filter((line) => line.length > 0).map((line) => line.split('\t'));
+      pushWorksheetHistory();
+      rows.forEach((cellsRow, r) => {
+        const targetRow = startRow + r;
+        if (!worksheetState.rows[targetRow]) return;
+        cellsRow.forEach((cellValue, c) => {
+          const targetCol = startCol + c;
+          const col = worksheetState.columns[targetCol];
+          if (!col?.editable) return;
+          setWorksheetCellValue(targetRow, col.key, cellValue);
+        });
+      });
+      renderWorksheet();
+    });
+  });
+  document.querySelectorAll('[data-resize-col]').forEach((handle) => {
+    handle.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      const colIndex = Number(handle.dataset.resizeCol);
+      const initialX = event.clientX;
+      const initialWidth = worksheetState.columns[colIndex]?.width || 150;
+      const move = (ev) => {
+        const next = Math.max(70, initialWidth + (ev.clientX - initialX));
+        worksheetState.columns[colIndex].width = next;
+        const th = document.querySelector(`th[data-col="${colIndex}"]`);
+        if (th) th.style.minWidth = `${next}px`;
+      };
+      const up = () => {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+        persistWorksheetTemplate();
+        renderWorksheet();
+      };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    });
+  });
+  document.querySelectorAll('[data-resize-row]').forEach((handle) => {
+    handle.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      const tr = handle.closest('tr');
+      if (!tr) return;
+      const startY = event.clientY;
+      const startH = tr.getBoundingClientRect().height;
+      const move = (ev) => { tr.style.height = `${Math.max(26, startH + (ev.clientY - startY))}px`; };
+      const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    });
+  });
+  const applyTextStyle = (fn) => {
+    const cell = document.querySelector(`.ws-cell[data-row="${worksheetState.selected.row}"][data-col="${worksheetState.selected.col}"]`);
+    if (!cell) return;
+    fn(cell);
+    const col = worksheetState.columns[worksheetState.selected.col];
+    if (col?.editable) setWorksheetCellValue(worksheetState.selected.row, col.key, cell.innerHTML);
+  };
+  document.getElementById('ws-bold')?.addEventListener('click', () => applyTextStyle((cell) => { cell.style.fontWeight = cell.style.fontWeight === '700' ? '400' : '700'; }));
+  document.getElementById('ws-italic')?.addEventListener('click', () => applyTextStyle((cell) => { cell.style.fontStyle = cell.style.fontStyle === 'italic' ? 'normal' : 'italic'; }));
+  document.getElementById('ws-underline')?.addEventListener('click', () => applyTextStyle((cell) => { cell.style.textDecoration = cell.style.textDecoration === 'underline' ? 'none' : 'underline'; }));
+  document.getElementById('ws-font')?.addEventListener('change', (e) => applyTextStyle((cell) => { cell.style.fontFamily = e.target.value; }));
+  document.getElementById('ws-font-size')?.addEventListener('change', (e) => applyTextStyle((cell) => { cell.style.fontSize = `${e.target.value}px`; }));
+  document.getElementById('ws-text-color')?.addEventListener('input', (e) => applyTextStyle((cell) => { cell.style.color = e.target.value; }));
+  document.getElementById('ws-fill-color')?.addEventListener('input', (e) => applyTextStyle((cell) => { cell.style.backgroundColor = e.target.value; }));
+  document.getElementById('ws-formula')?.addEventListener('input', (e) => {
+    const col = worksheetState.columns[worksheetState.selected.col];
+    if (!col?.editable) return;
+    pushWorksheetHistory();
+    setWorksheetCellValue(worksheetState.selected.row, col.key, e.target.value || '');
+    renderWorksheet();
+  });
+  if (worksheetState.historyIndex < 0) pushWorksheetHistory();
+};
+
 const renderAll = () => {
+  loadWorksheetTemplate();
   renderDashboard();
   renderStudents();
   buildClassSummary();
+  try {
+    renderWorksheet();
+  } catch (error) {
+    console.error('Worksheet render failed, resetting template state.', error);
+    localStorage.removeItem(WORKSHEET_TEMPLATE_KEY);
+    worksheetState.columns = [
+      { key: 'sno', label: 'S.No', width: 90, editable: false, source: 'AUTO_SNO' },
+      { key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' },
+      { key: 'custom1', label: 'Heading', width: 160, editable: true, source: 'CUSTOM' }
+    ];
+    worksheetState.selected = { row: 0, col: 0 };
+    renderWorksheet();
+  }
   renderStaffTab();
   renderHome();
 };
@@ -540,15 +963,43 @@ const tryLogin = async () => {
 
   if (!session) {
     const staffSnap = await getDocs(collection(db, `${BASE_PATH}/staff`));
-    const staff = staffSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).find((item) => item.isActive !== false && (((item.email || '').toLowerCase() === uname) || ((item.username || '').toLowerCase() === uname)) && String(item.password || '').trim() === password);
+    const staff = staffSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).find((item) => {
+      if (item.isActive === false) return false;
+      const usernames = [
+        item.email, item.username, item.userName, item.loginId, item.login, item.staffId
+      ].map((v) => String(v || '').toLowerCase()).filter(Boolean);
+      const passwordMatches = [
+        String(item.password || '').trim() === password,
+        String(item.passwordHash || '').trim() === passHash
+      ].some(Boolean);
+      return usernames.includes(uname) && passwordMatches;
+    });
     if (staff) session = { ...staff, name: staff.name || 'Staff', username, type: staff.type || 'Staff', source: 'staff', photo: staff.photo || '' };
   }
 
   if (!session) {
+    const authConfigSnap = await getDoc(doc(db, `${BASE_PATH}/settings`, 'categoryAuthConfig'));
+    const authConfig = authConfigSnap.exists() ? { categories: {}, ...(authConfigSnap.data() || {}) } : { categories: {} };
     const dirSnap = await getDocs(collection(db, `${BASE_PATH}/publicDirectory`));
     const directoryUser = dirSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).find((entry) => {
       const meta = entry.authMeta || {};
-      return String(meta.username || '').toLowerCase() === uname && String(meta.passwordHash || '') === passHash;
+      const categoryAuth = authConfig?.categories?.[entry.categoryId] || {};
+      const usernameField = String(categoryAuth.usernameField || '').trim();
+      const passwordField = String(categoryAuth.passwordField || '').trim();
+      const values = entry.values || {};
+      const configuredUsername = usernameField ? String(values[usernameField] || '').toLowerCase() : '';
+      const configuredPasswordRaw = passwordField ? String(values[passwordField] || '').trim() : '';
+      const configuredPasswordHash = configuredPasswordRaw ? await hashCredentialValue(configuredPasswordRaw) : '';
+      const userMatch = [
+        String(meta.username || '').toLowerCase(),
+        configuredUsername
+      ].includes(uname);
+      const passMatch = [
+        String(meta.passwordHash || '') === passHash,
+        configuredPasswordRaw === password,
+        configuredPasswordHash === passHash
+      ].some(Boolean);
+      return userMatch && passMatch;
     });
     if (directoryUser) session = { id: directoryUser.id, ...(directoryUser.values || {}), name: String(directoryUser.values?.name || 'Directory User'), username, type: 'Category User', source: 'directory', categoryId: directoryUser.categoryId, photo: String(directoryUser.values?.photo || directoryUser.values?.image || '') };
   }
@@ -593,3 +1044,10 @@ const restoreOfficialSession = async () => {
 
 preloadOfficialBranding();
 restoreOfficialSession();
+      <div class="worksheet-print-header">
+        <img src="${escapeHtml(rememberInstitutionLogo(institutionConfig.logoUrl || '') || 'assets/images/logo.png')}" onerror="this.style.display='none'" alt="logo">
+        <div>
+          <div class="title">${escapeHtml(resolveInstitutionName(institutionConfig) || 'Institution')}</div>
+          <div class="sub">${escapeHtml(worksheetState.heading || `Class ${worksheetState.className} Worksheet`)}</div>
+        </div>
+      </div>
