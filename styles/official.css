@@ -1,0 +1,223 @@
+    /* ==========================================
+       GLOBAL CSS x& DASHBOARD STYLES
+       ========================================== */
+    :root { 
+        --background-light: #f3f4f6; 
+        --text-light: #1f2937; 
+        --card-light: #ffffff; 
+        --border-light: #e5e7eb; 
+        --primary-light: #3b82f6; 
+        --primary: #0f172a; 
+        --accent: #3b82f6; 
+        --white: #ffffff; 
+        --text-dark: #1e293b; 
+        --text-gray: #64748b; 
+        --header-height: 70px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth !important; }
+    body { overflow-x: hidden; background-color: var(--background-light); color: var(--text-light); }
+    body.modal-scroll-lock { overflow: hidden !important; overscroll-behavior: none; }
+    a { text-decoration: none; color: inherit; transition: 0.2s; }
+    ul { list-style: none; }
+    img { display: block; max-width: 100%; }
+    .hidden { display: none !important; }
+    .page-content { content-visibility: auto; contain-intrinsic-size: 1px 800px; }
+
+    .card { background-color: var(--card-light); border: 1px solid var(--border-light); }
+    .btn-primary { background-color: var(--accent); color: #ffffff; transition: 0.2s; cursor: pointer; border: none; }
+    .btn-primary:hover { background-color: #2563eb; }
+
+    .popup-overlay { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); z-index: 5000; }
+    .modal-overlay { position: fixed; inset: 0; width: 100vw; height: 100vh; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 5000; display: none; align-items: center; justify-content: center; padding: 15px; }
+    .modal-box { background: #ffffff; width: 100%; max-width: 340px; padding: 25px 20px; border-radius: 20px; position: relative; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.15); }
+    @keyframes popUp { from { transform: scale(0.9) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+    .form-input { width: 100%; padding: 12px 14px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; margin-bottom: 15px; outline: none; font-weight: 500; transition: 0.2s; color: #0f172a; font-size: 14px; }
+    .form-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    input, select, textarea { background-color: #ffffff; border-color: #d1d5db; color: #1f2937; transition: border 0.2s; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+
+    header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); position: sticky; top: 15px; z-index: 1000; border: 1px solid #f1f5f9; height: var(--header-height); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); border-radius: 16px; margin: 15px auto; width: calc(100% - 30px); max-width: 1200px; }
+    @media (max-width: 768px) { header { margin: 10px; width: calc(100% - 20px); border-radius: 12px; top: 10px; } }
+    .nav-container { height: 100%; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; position: relative; }
+    .header-logo-box { width: 45px; height: 45px; flex-shrink: 0; z-index: 10; display: flex; align-items: center;}
+    .header-logo-box img { max-height: 100%; max-width: 100%; border-radius: 8px; object-fit: contain; opacity: 0; transition: opacity 0.5s ease; }
+    .header-center-box { position: absolute; left: 50%; transform: translateX(-50%); width: 55%; text-align: center; display: flex; flex-direction: column; justify-content: center; z-index: 1; }
+    .header-center-box h1 { font-weight: 800; color: var(--primary); white-space: normal; line-height: 1.2; width: 100%; margin: 0 auto; font-size: 14px; word-wrap: break-word; }
+    .header-center-box p { font-size: 10px; color: var(--text-gray); font-weight: 600; white-space: nowrap; opacity: 0.8; margin-top: 2px; }
+    
+    .nav-menu { display: flex; gap: 15px; align-items: center; z-index: 10; }
+    .nav-link { font-size: 14px; font-weight: 600; color: var(--text-dark); cursor: pointer; transition: 0.2s; }
+    .nav-link:hover { color: var(--accent); }
+    .nav-link.active { background: #111111 !important; color: #ffffff !important; }
+    .login-btn-nav { padding: 8px 20px; background: var(--primary); color: var(--white); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform 0.2s; border: none; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);}
+    .login-btn-nav:hover { transform: translateY(-2px); }
+
+    .mobile-toggle { display: block; color: var(--primary); cursor: pointer; padding: 5px 10px; z-index: 1001; position: relative; }
+    .menu-icon-wrapper { width: 24px; height: 24px; position: relative; display: flex; align-items: center; justify-content: center; }
+    .menu-icon-wrapper i { position: absolute; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-size: 22px; }
+    .icon-bars { opacity: 1; transform: rotate(0deg) scale(1); }
+    .icon-close { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+    .active-toggle .icon-bars { opacity: 0; transform: rotate(90deg) scale(0.5); }
+    .active-toggle .icon-close { opacity: 1; transform: rotate(0deg) scale(1); color: #ef4444; }
+
+    .nav-menu { position: absolute; top: calc(100% + 10px); right: 0; width: min(280px, calc(100vw - 30px)); max-height: min(70vh, 560px); overflow-y: auto; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(15px); flex-direction: column; align-items: stretch; padding: 15px; gap: 8px; border: 1px solid #f1f5f9; border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); transform: translateY(-15px) scale(0.95); opacity: 0; pointer-events: none; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; transform-origin: top right; z-index: 900; display: flex; }
+    .nav-menu.active { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+    .nav-link { font-size: 14px; width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 15px; text-align: left; border-radius: 10px; }
+    .nav-link:hover { background: #f8fafc; }
+    .login-btn-nav { width: 100%; text-align: center; justify-content: center; padding: 10px; margin-top: 5px; }
+
+    .official-metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+    .official-metric-card{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #dbeafe;border-radius:18px;background:linear-gradient(135deg,#fff,#eff6ff);padding:14px;box-shadow:0 8px 20px rgba(15,23,42,.06)}
+    .official-metric-card i{font-size:24px;opacity:.75}
+    .official-metric-card.green{border-color:#bbf7d0;background:linear-gradient(135deg,#fff,#f0fdf4);color:#166534}
+    .official-metric-card.teal{border-color:#99f6e4;background:linear-gradient(135deg,#fff,#f0fdfa);color:#0f766e}
+    .official-metric-card.indigo{border-color:#c7d2fe;background:linear-gradient(135deg,#fff,#eef2ff);color:#3730a3}
+    .official-metric-card.amber{border-color:#fde68a;background:linear-gradient(135deg,#fff,#fffbeb);color:#92400e}
+    .official-metric-card.purple{border-color:#e9d5ff;background:linear-gradient(135deg,#fff,#faf5ff);color:#7e22ce}
+    .official-metric-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:900;color:#64748b}
+    .official-metric-value{font-size:26px;line-height:1;font-weight:900;color:#0f172a;margin-top:4px}
+    
+    .official-quick-card,.official-card-button,.official-student-card{width:100%;text-align:left;border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:14px;box-shadow:0 8px 20px rgba(15,23,42,.05);transition:transform .2s,box-shadow .2s,border-color .2s}
+    .official-quick-card:hover,.official-card-button:hover,.official-student-card:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(15,23,42,.09);border-color:#93c5fd}
+    .official-quick-card{display:flex;flex-direction:column;gap:7px}
+    .official-quick-card i{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#eef2ff;color:#4f46e5;font-size:18px}
+    .official-quick-card b{color:#0f172a}
+    .official-quick-card span{font-size:12px;font-weight:700;color:#64748b}
+    .official-card-button{padding:0;margin-bottom:10px}
+    .official-card-button .official-profile-card{border:0;box-shadow:none;width:100%;min-height:auto}
+    .official-student-card{display:none;margin-bottom:10px}
+    .official-profile-card{width:100%;min-height:auto}
+    
+    @media (max-width: 767px){.official-mobile-card-list{display:block}.official-student-card{display:block}.official-tab table{font-size:11px}}
+    @media (min-width: 768px){.official-mobile-card-list{display:none}}
+    
+    .official-me-card{background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 45%,#ec4899 100%);border:1px solid rgba(255,255,255,.35)}
+    .official-me-hero{background:radial-gradient(circle at top left,rgba(255,255,255,.28),transparent 35%),radial-gradient(circle at bottom right,rgba(34,211,238,.26),transparent 38%)}
+    .official-me-photo{width:154px;height:154px;border-radius:34px;object-fit:cover;border:5px solid rgba(255,255,255,.72);box-shadow:0 24px 45px rgba(15,23,42,.26)}
+    .official-access-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);padding:7px 11px;color:#fff;font-size:12px;font-weight:900;backdrop-filter:blur(8px)}
+
+    .icon-badge { width: 45px; height: 45px; background: #eff6ff; color: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px; }
+    .modal-title { color: var(--primary); margin-bottom: 20px; font-weight: 800; font-size: 18px; }
+    .input-with-icon { position: relative; margin-bottom: 15px; }
+    .form-input-with-trailing-icon { margin-bottom: 0; padding-right: 40px; }
+    .trailing-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; font-size: 16px; }
+    .auth-alert { color: #ef4444; font-size: 12px; display: none; margin-bottom: 15px; font-weight: 700; background: #fef2f2; padding: 8px; border-radius: 8px; border: 1px solid #fecaca; }
+    .main-login-btn { background: var(--primary); color: var(--white); border: none; padding: 12px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2); transition: all 0.3s; width: auto; }
+    .main-login-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(15, 23, 42, 0.3); }
+
+    .id-card{width:336px;max-width:100%;min-height:210px;background:#fff;border:1px solid #dbe4f0;border-radius:18px;padding:14px;box-shadow:0 8px 20px rgba(15,23,42,.06)}
+    .id-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .id-photo{width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid #cbd5e1}
+    .badge{padding:4px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:11px;font-weight:700}
+    .details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .detail-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px}
+    .detail-label{font-size:10px;text-transform:uppercase;color:#64748b;font-weight:800}
+    .detail-value{font-size:12px;color:#0f172a;font-weight:600;word-break:break-word}
+
+    /* ==========================================
+       EXCEL SPREADSHEET UI STYLES
+       ========================================== */
+
+    .excel-container { display: flex; flex-direction: column; height: 100%; background: #f3f2f1; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}
+    
+    .excel-ribbon-wrapper { background: #f3f2f1; border-bottom: 1px solid #c8c6c4; padding-top: 4px; z-index: 40; position: relative;}
+    .excel-tabs { display: flex; gap: 4px; padding: 0 10px; border-bottom: 1px solid #c8c6c4;}
+    .excel-tab { padding: 4px 16px; font-size: 13px; color: #323130; cursor: pointer; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; position: relative; bottom: -1px; transition: 0.1s; background: transparent;}
+    .excel-tab:hover { background: #e1dfdd; }
+    .excel-tab.active { background: #ffffff; color: #107c41; font-weight: 600; border-color: #c8c6c4; border-bottom-color: #ffffff; z-index: 10; }
+    
+    .excel-ribbon { background: #ffffff; display: flex; padding: 6px 10px; gap: 16px; align-items: flex-start; overflow-x: auto; min-height: 84px; scrollbar-width: none;}
+    .excel-ribbon::-webkit-scrollbar { display: none; }
+    .ribbon-panel { display: none; width: 100%; align-items: flex-start; gap: 16px;}
+    .ribbon-panel.active { display: flex; }
+
+    .ribbon-group { display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-right: 1px solid #e1dfdd; padding-right: 16px; min-height: 68px; }
+    .ribbon-group:last-child { border-right: none; }
+    .ribbon-row { display: flex; gap: 4px; align-items: center; width: 100%; justify-content: center;}
+    .ribbon-label { font-size: 11px; color: #605e5c; margin-top: auto; }
+
+    .excel-btn-ribbon { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 48px; height: 50px; border-radius: 4px; border: 1px solid transparent; color: #323130; cursor: pointer; background: transparent; transition: 0.1s;}
+    .excel-btn-ribbon:hover { background: #f3f2f1; border-color: #c8c6c4;}
+    .excel-btn-ribbon:active { background: #e1dfdd; transform: scale(0.96); }
+    .excel-btn-ribbon i { font-size: 18px; }
+    .excel-btn-ribbon span { font-size: 10px; }
+
+    .excel-btn-small { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; color: #323130; transition: 0.1s;}
+    .excel-btn-small:hover { background: #f3f2f1; border-color: #c8c6c4;}
+    .excel-btn-small:active { background: #e1dfdd; transform: scale(0.95);}
+
+    .excel-input-ribbon { border: 1px solid #8a8886; border-radius: 2px; padding: 2px 6px; font-size: 12px; height: 26px; outline: none; color: #323130;}
+    .excel-input-ribbon:focus { border-color: #107c41; box-shadow: 0 0 0 1px #107c41; }
+
+    .premium-export-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 600; color: #fff; cursor: pointer; transition: 0.2s; border: none; }
+    .btn-excel-green { background: #107c41;}
+    .btn-excel-green:hover { background: #185c37; }
+    .btn-pdf-red { background: #d83b01; }
+    .btn-pdf-red:hover { background: #a4262c; }
+
+    .formula-bar { display: flex; align-items: center; background: #fff; border-bottom: 1px solid #c8c6c4; padding: 4px 10px; gap: 10px;}
+    .formula-name-box { width: 60px; font-size: 13px; text-align: center; color: #323130; font-family: monospace; font-weight: bold;}
+    .formula-divider { width: 1px; height: 18px; background: #c8c6c4; }
+    .formula-icon { color: #605e5c; font-style: italic; font-family: 'Times New Roman', Times, serif; font-weight: bold; font-size: 14px;}
+    .formula-input { flex-grow: 1; border: none; outline: none; font-size: 13px; color: #000; padding: 2px 5px;}
+
+    .excel-workspace { flex-grow: 1; overflow: auto; padding: 15px; position: relative; background: #e1dfdd;}
+    .excel-workspace::-webkit-scrollbar { width: 12px; height: 12px; }
+    .excel-workspace::-webkit-scrollbar-track { background: #f3f2f1; }
+    .excel-workspace::-webkit-scrollbar-thumb { background: #c8c6c4; border: 2px solid #f3f2f1; border-radius: 6px; }
+    .excel-workspace::-webkit-scrollbar-thumb:hover { background: #a19f9d; }
+
+    .print-canvas { background: #fff; margin: 0 auto; min-height: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; overflow: visible; border-right: 2px dashed #ef4444;}
+    .print-canvas[data-paper="A4"][data-orient="portrait"] { width: 210mm; }
+    .print-canvas[data-paper="A4"][data-orient="landscape"] { width: 297mm; }
+    .print-canvas[data-paper="Legal"][data-orient="portrait"] { width: 8.5in; }
+    .print-canvas[data-paper="Legal"][data-orient="landscape"] { width: 14in; }
+
+    .excel-table { border-collapse: collapse; min-width: 100%; table-layout: auto;}
+    .excel-table th, .excel-table td { border: 1px solid #d4d4d4; padding: 4px; font-size: 13px; color: #000; background: #fff; vertical-align: bottom;}
+    
+    .col-header, .row-header, .select-all-corner { background-color: #e6e6e6 !important; color: #333 !important; text-align: center !important; font-size: 12px !important; font-weight: normal !important; user-select: none; cursor: pointer; padding: 2px !important;}
+    .col-header:hover, .row-header:hover, .select-all-corner:hover { background-color: #d4d4d4 !important; }
+    .col-header.selected, .row-header.selected, .select-all-corner.selected { background-color: #cacaca !important; color: #107c41 !important; font-weight: bold !important; border-bottom: 2px solid #107c41 !important;}
+    .row-header.selected { border-bottom: 1px solid #d4d4d4 !important; border-right: 2px solid #107c41 !important;}
+
+    .excel-cell { outline: none; transition: 0.1s; white-space: nowrap; overflow: hidden; position: relative;}
+    .excel-cell.selected { background-color: #e5f3eb !important; }
+    .excel-cell.selected::after { content: ''; position: absolute; inset: -1px; border: 2px solid #107c41; z-index: 10; pointer-events: none; }
+    .excel-cell:focus { z-index: 12; }
+    .excel-cell:focus::after { content: ''; position: absolute; inset: -1px; border: 2px solid #107c41; z-index: 12; pointer-events: none; }
+
+    .config-row th { background: #f8fafc; padding: 4px; border-bottom: none;}
+    .grid-select { width: 100%; border: 1px solid #c8c6c4; padding: 2px; font-size: 11px; outline: none; color: #333; border-radius: 2px;}
+    .grid-select:focus { border-color: #107c41;}
+    .grid-input { width: 100%; border: 1px solid transparent; padding: 2px 4px; font-size: 12px; font-weight: bold; outline: none; color: #000; border-top: none;}
+    .grid-input:focus { border-color: #c8c6c4;}
+    .grid-input:hover { border-color: #e1dfdd; }
+
+    .col-resizer { position: absolute; right: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; z-index: 20; }
+    .col-resizer:hover { background: rgba(16, 124, 65, 0.5); }
+    .builder-th { position: relative; }
+
+    .print-only-heading { display: none; }
+    .builder-print-header { display: none; }
+    .builder-print-header.repeat-header { display: table-header-group; }
+    .print-header-content { text-align: center; padding-bottom: 12px; margin-bottom: 8px; border-bottom: 2px solid #333; }
+    .print-inst-name { font-size: 24px; font-weight: 900; text-transform: uppercase; color: #0f172a; margin: 0; }
+    .print-inst-sub { font-size: 14px; font-weight: 600; color: #334155; margin: 2px 0; }
+    .print-custom-title { font-size: 18px; font-weight: 800; color: #1e3a8a; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    @media print {
+        body.is-printing { background: #fff; margin: 0; padding: 0; }
+        body.is-printing * { visibility: hidden; }
+        body.is-printing #print-canvas, body.is-printing #print-canvas * { visibility: visible; }
+        body.is-printing #print-canvas { position: absolute; left: 0; top: 0; width: 100% !important; max-width: none !important; margin: 0; padding: 0; border: none; box-shadow: none; overflow: visible; }
+        body.is-printing .no-print { display: none !important; }
+        body.is-printing .print-only-heading { display: block !important; font-size: 13px; font-weight: bold; text-align: center; padding: 4px; border-bottom: 1px solid #000;}
+        body.is-printing .builder-print-header { display: table-header-group !important; }
+        body.is-printing .excel-cell { white-space: normal; word-break: break-word;}
+        .page-break-before { page-break-before: always; break-before: page; }
+        @page { margin: 1cm; }
+    }
+  
