@@ -16,13 +16,20 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-const appCheckSiteKey = window.__APP_CHECK_SITE_KEY || 'REPLACE_WITH_RECAPTCHA_V3_SITE_KEY';
-const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(appCheckSiteKey),
-  isTokenAutoRefreshEnabled: true
-});
+const appCheckSiteKey = String(window.__APP_CHECK_SITE_KEY || '').trim();
+const canEnableAppCheck = appCheckSiteKey && appCheckSiteKey !== 'REPLACE_WITH_RECAPTCHA_V3_SITE_KEY';
+const appCheck = canEnableAppCheck
+  ? initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(appCheckSiteKey),
+      isTokenAutoRefreshEnabled: true
+    })
+  : null;
+
+if (!canEnableAppCheck) {
+  console.warn('[Security] App Check is not enabled yet: set window.__APP_CHECK_SITE_KEY with a valid reCAPTCHA v3 site key.');
+}
 
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export { db, auth, appCheck };
+export { db, auth, appCheck, canEnableAppCheck };
