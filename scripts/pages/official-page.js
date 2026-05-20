@@ -529,6 +529,7 @@ const applyWorksheetClass = () => {
   worksheetState.rows = rows;
 };
 const worksheetCellValue = (row, col) => {
+  if (!col || !row) return '';
   if (col.key === 'sno') return row.sno;
   if (col.key === 'name') return row.name;
   return row.values?.[col.key] || '';
@@ -579,15 +580,24 @@ const loadWorksheetTemplate = () => {
     worksheetState.orientation = parsed.orientation || worksheetState.orientation;
     worksheetState.margin = parsed.margin || worksheetState.margin;
     if (Array.isArray(parsed.columns) && parsed.columns.length >= 2) {
-      worksheetState.columns = parsed.columns.map((col, idx) => ({
+      const normalized = parsed.columns.map((col, idx) => ({
         key: col.key || `custom_restored_${idx}`,
         label: col.label || `Column ${idx + 1}`,
         width: Number(col.width || 150),
         editable: col.editable !== false,
         source: col.source || 'CUSTOM'
       }));
+      const hasSerial = normalized.some((col) => col.key === 'sno');
+      const hasName = normalized.some((col) => col.key === 'name');
+      worksheetState.columns = [
+        ...(hasSerial ? [] : [{ key: 'sno', label: 'S.No', width: 90, editable: false, source: 'AUTO_SNO' }]),
+        ...(hasName ? [] : [{ key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' }]),
+        ...normalized
+      ];
     }
-  } catch (_error) {}
+  } catch (_error) {
+    localStorage.removeItem(WORKSHEET_TEMPLATE_KEY);
+  }
 };
 const exportWorksheetXlsx = async () => {
   const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs');
@@ -615,6 +625,15 @@ const exportWorksheetXlsx = async () => {
   XLSX.writeFile(wb, `class-worksheet-${worksheetState.className || 'all'}.xlsx`);
 };
 const renderWorksheet = () => {
+  if (!Array.isArray(worksheetState.columns) || worksheetState.columns.length < 2) {
+    worksheetState.columns = [
+      { key: 'sno', label: 'S.No', width: 90, editable: false, source: 'AUTO_SNO' },
+      { key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' },
+      { key: 'custom1', label: 'Heading', width: 160, editable: true, source: 'CUSTOM' }
+    ];
+  }
+  if (worksheetState.selected.col >= worksheetState.columns.length) worksheetState.selected.col = 0;
+  if (worksheetState.selected.row < 0) worksheetState.selected.row = 0;
   if (!worksheetState.className) worksheetState.className = getWorksheetClassOptions()[0] || '';
   applyWorksheetClass();
   const pageEl = document.getElementById('official-tab-worksheet');
@@ -862,7 +881,19 @@ const renderAll = () => {
   renderDashboard();
   renderStudents();
   buildClassSummary();
-  renderWorksheet();
+  try {
+    renderWorksheet();
+  } catch (error) {
+    console.error('Worksheet render failed, resetting template state.', error);
+    localStorage.removeItem(WORKSHEET_TEMPLATE_KEY);
+    worksheetState.columns = [
+      { key: 'sno', label: 'S.No', width: 90, editable: false, source: 'AUTO_SNO' },
+      { key: 'name', label: 'Student Name', width: 240, editable: false, source: 'NAME' },
+      { key: 'custom1', label: 'Heading', width: 160, editable: true, source: 'CUSTOM' }
+    ];
+    worksheetState.selected = { row: 0, col: 0 };
+    renderWorksheet();
+  }
   renderStaffTab();
   renderHome();
 };
