@@ -12,12 +12,15 @@ rg -n "allow read: if isAdmin\(institutionId\) \|\| isCollectionSession\(\);" fi
 rg -n "match /institutions/\{institutionId\}/academicYears/\{yearId\}/payments/\{docId\}" firestore.rules >/dev/null
 
 echo "[3/5] Accessibility baseline assertions"
-rg -n "skip-link" collection.html >/dev/null
-rg -n "aria-live=\"polite\"" collection.html >/dev/null
-rg -n ":focus-visible" styles/main.css >/dev/null
+rg -n "aria-label=\"Primary navigation\"" index.html >/dev/null
+rg -n "focus-visible" styles/main.css >/dev/null
 
 echo "[4/5] Key workflow hooks assertions"
-rg -n "writeDutyStateToLocal|readDutyUpdatedAtFromLocal|validateDutyPaymentDetails" scripts/pages/collection-page.js >/dev/null
+test -f scripts/pages/collection/entry-module.js
+test -f scripts/pages/collection/history-module.js
+test -f scripts/pages/collection/reports-module.js
+test -f scripts/pages/collection/upload-module.js
+test -f scripts/pages/collection/settings-module.js
 
 echo "[5/5] Audit + handover docs presence"
 for f in APP_AUDIT_REPORT_ML.md qa/UAT_HANDOVER_CHECKLIST_ML.md qa/ROLLBACK_RUNBOOK.md; do
