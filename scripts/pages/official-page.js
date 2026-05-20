@@ -963,15 +963,43 @@ const tryLogin = async () => {
 
   if (!session) {
     const staffSnap = await getDocs(collection(db, `${BASE_PATH}/staff`));
-    const staff = staffSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).find((item) => item.isActive !== false && (((item.email || '').toLowerCase() === uname) || ((item.username || '').toLowerCase() === uname)) && String(item.password || '').trim() === password);
+    const staff = staffSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).find((item) => {
+      if (item.isActive === false) return false;
+      const usernames = [
+        item.email, item.username, item.userName, item.loginId, item.login, item.staffId
+      ].map((v) => String(v || '').toLowerCase()).filter(Boolean);
+      const passwordMatches = [
+        String(item.password || '').trim() === password,
+        String(item.passwordHash || '').trim() === passHash
+      ].some(Boolean);
+      return usernames.includes(uname) && passwordMatches;
+    });
     if (staff) session = { ...staff, name: staff.name || 'Staff', username, type: staff.type || 'Staff', source: 'staff', photo: staff.photo || '' };
   }
 
   if (!session) {
+    const authConfigSnap = await getDoc(doc(db, `${BASE_PATH}/settings`, 'categoryAuthConfig'));
+    const authConfig = authConfigSnap.exists() ? { categories: {}, ...(authConfigSnap.data() || {}) } : { categories: {} };
     const dirSnap = await getDocs(collection(db, `${BASE_PATH}/publicDirectory`));
     const directoryUser = dirSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).find((entry) => {
       const meta = entry.authMeta || {};
-      return String(meta.username || '').toLowerCase() === uname && String(meta.passwordHash || '') === passHash;
+      const categoryAuth = authConfig?.categories?.[entry.categoryId] || {};
+      const usernameField = String(categoryAuth.usernameField || '').trim();
+      const passwordField = String(categoryAuth.passwordField || '').trim();
+      const values = entry.values || {};
+      const configuredUsername = usernameField ? String(values[usernameField] || '').toLowerCase() : '';
+      const configuredPasswordRaw = passwordField ? String(values[passwordField] || '').trim() : '';
+      const configuredPasswordHash = configuredPasswordRaw ? await hashCredentialValue(configuredPasswordRaw) : '';
+      const userMatch = [
+        String(meta.username || '').toLowerCase(),
+        configuredUsername
+      ].includes(uname);
+      const passMatch = [
+        String(meta.passwordHash || '') === passHash,
+        configuredPasswordRaw === password,
+        configuredPasswordHash === passHash
+      ].some(Boolean);
+      return userMatch && passMatch;
     });
     if (directoryUser) session = { id: directoryUser.id, ...(directoryUser.values || {}), name: String(directoryUser.values?.name || 'Directory User'), username, type: 'Category User', source: 'directory', categoryId: directoryUser.categoryId, photo: String(directoryUser.values?.photo || directoryUser.values?.image || '') };
   }
