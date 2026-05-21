@@ -49,6 +49,30 @@ service cloud.firestore {
       return /databases/$(database)/documents/institutions/$(institutionId)/staffAccess/$(request.auth.token.email);
     }
 
+
+    function isIsoTimestamp(value) {
+      return value is timestamp;
+    }
+
+    function hasOnlyKeys(data, allowed) {
+      return data.keys().hasOnly(allowed);
+    }
+
+    function validSessionRegistryWrite() {
+      return hasOnlyKeys(request.resource.data, ['lastHeartbeatAt', 'updatedAt', 'createdAt', 'sessionId', 'userAgent'])
+        && request.resource.data.sessionId is string
+        && request.resource.data.userAgent is string
+        && isIsoTimestamp(request.resource.data.updatedAt);
+    }
+
+    function validPaymentWrite() {
+      return request.resource.data.studentId is string
+        && request.resource.data.amount is number
+        && request.resource.data.amount >= 0
+        && request.resource.data.paymentDate is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
     function hasResultStaffAccess(institutionId) {
       return hasEmailIdentity()
         && exists(staffAccessRef(institutionId))
@@ -64,7 +88,7 @@ service cloud.firestore {
       // FIX: Added permission for sessionRegistry so that Collection Session Heartbeat works without errors
       allow write: if isAdmin(institutionId)
         || (isResultOperator(institutionId) && docId == 'resultCenter')
-        || (isCollectionSession() && docId == 'sessionRegistry');
+        || (isCollectionSession() && docId == 'sessionRegistry' && validSessionRegistryWrite());
     }
 
     match /institutions/{institutionId}/staff/{docId} {
@@ -100,7 +124,7 @@ service cloud.firestore {
 
     match /institutions/{institutionId}/payments/{docId} {
       allow read: if isAdmin(institutionId) || isCollectionSession();
-      allow write: if isAdmin(institutionId) || isCollectionSession();
+      allow write: if isAdmin(institutionId) || (isCollectionSession() && validPaymentWrite());
     }
 
     match /institutions/{institutionId}/donations/{docId} {
@@ -160,7 +184,7 @@ service cloud.firestore {
 
     match /institutions/{institutionId}/academicYears/{yearId}/payments/{docId} {
       allow read: if isAdmin(institutionId) || isCollectionSession();
-      allow write: if isAdmin(institutionId) || isCollectionSession();
+      allow write: if isAdmin(institutionId) || (isCollectionSession() && validPaymentWrite());
     }
 
     match /institutions/{institutionId}/academicYears/{yearId}/results/{docId} {
