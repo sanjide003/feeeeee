@@ -23,7 +23,10 @@ const officialFilters = {
   studentSearch: '',
   staffType: 'ALL',
   staffStatus: 'ALL',
-  staffSearch: ''
+  staffSearch: '',
+  worksheetClass: '',
+  worksheetColumns: ['class', 'adm', 'name', 'gender', 'father', 'mobile'],
+  worksheetSearch: ''
 };
 
 const resolveInstitutionName = (conf = {}) => String(
@@ -277,6 +280,76 @@ const renderStudents = () => {
   }));
 };
 
+const worksheetToolButtons = [
+  { icon: 'fa-filter', label: 'Filter' },
+  { icon: 'fa-sliders', label: 'Adjust' },
+  { icon: 'fa-palette', label: 'Color' },
+  { icon: 'fa-undo', label: 'Undo' },
+  { icon: 'fa-redo', label: 'Redo' },
+  { icon: 'fa-arrows-up-down-left-right', label: 'Margin' },
+  { icon: 'fa-print', label: 'Print', action: 'print' },
+  { icon: 'fa-download', label: 'Export', action: 'export' }
+];
+const downloadWorksheetCsv = (rows = [], columns = []) => {
+  const header = ['#', ...columns.map((column) => toLabel(column))];
+  const csvRows = [header, ...rows.map((student, index) => [index + 1, ...columns.map((column) => valueToDisplay(student?.[column]))])];
+  const csv = csvRows.map((row) => row.map((cell) => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `class-worksheet-${officialFilters.worksheetClass || 'all'}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+const renderWorksheetTab = () => {
+  const classOptions = [...new Set(allStudents.map(getStudentClass))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const selectedClass = officialFilters.worksheetClass;
+  const classStudents = selectedClass ? allStudents.filter((student) => getStudentClass(student) === selectedClass) : [];
+  const allKeys = [...new Set(classStudents.flatMap((student) => Object.keys(student || {})))].filter((key) => !['id', 'photo', 'image'].includes(key));
+  const selectedColumns = officialFilters.worksheetColumns.filter((column) => allKeys.includes(column));
+  const searchableRows = classStudents.filter((student) => {
+    if (!officialFilters.worksheetSearch) return true;
+    return Object.values(student || {}).map(valueToDisplay).join(' ').toLowerCase().includes(officialFilters.worksheetSearch.toLowerCase());
+  });
+  const rowHtml = searchableRows.map((student, index) => `<tr><td class="border p-2 font-bold text-center">${index + 1}</td>${selectedColumns.map((key) => `<td class="border p-2">${escapeHtml(valueToDisplay(student[key]))}</td>`).join('')}</tr>`).join('');
+  document.getElementById('official-tab-worksheet').innerHTML = `
+    <div class="card p-4 rounded-2xl shadow-sm space-y-4">
+      <div class="official-sheet-toolbar">${worksheetToolButtons.map((button) => `<button type="button" class="official-sheet-tool-btn" data-worksheet-action="${button.action || ''}"><i class="fas ${button.icon}"></i>${escapeHtml(button.label)}</button>`).join('')}</div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <select id="official-worksheet-class" class="p-2.5 rounded-lg border bg-white text-sm font-semibold"><option value="">Select Class</option>${classOptions.map((className) => `<option value="${escapeHtml(className)}" ${selectedClass === className ? 'selected' : ''}>${escapeHtml(className)}</option>`).join('')}</select>
+        <input id="official-worksheet-search" value="${escapeHtml(officialFilters.worksheetSearch)}" class="p-2.5 rounded-lg border bg-white text-sm font-semibold" placeholder="Search selected class records">
+        <div class="text-xs rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700 px-3 py-2 font-bold flex items-center">${selectedClass ? `${searchableRows.length} matching records` : 'Select class to start worksheet'}</div>
+      </div>
+      <div class="border rounded-2xl p-3 bg-slate-50">
+        <div class="text-xs font-bold text-slate-600 mb-2">Select required columns</div>
+        <div class="official-field-grid">${allKeys.map((key) => `<label class="official-field-pill"><input type="checkbox" value="${escapeHtml(key)}" ${selectedColumns.includes(key) ? 'checked' : ''}> ${escapeHtml(toLabel(key))}</label>`).join('') || '<span class="text-sm text-slate-500">No fields available</span>'}</div>
+      </div>
+      <div class="overflow-auto"><table class="w-full text-xs md:text-sm border-collapse min-w-[900px]"><thead><tr class="bg-slate-100"><th class="border p-2">#</th>${selectedColumns.map((column) => `<th class="border p-2 whitespace-nowrap">${escapeHtml(toLabel(column))}</th>`).join('')}</tr></thead><tbody>${rowHtml || `<tr><td colspan="${selectedColumns.length + 1}" class="border p-3 text-center text-slate-500">${selectedClass ? 'No students match selected filters' : 'Please select a class'}</td></tr>`}</tbody></table></div>
+    </div>`;
+  document.getElementById('official-worksheet-class')?.addEventListener('change', (e) => {
+    officialFilters.worksheetClass = e.target.value;
+    officialFilters.worksheetColumns = ['class', 'adm', 'name', 'gender', 'father', 'mobile'];
+    renderWorksheetTab();
+  });
+  document.getElementById('official-worksheet-search')?.addEventListener('input', (e) => {
+    officialFilters.worksheetSearch = e.target.value;
+    renderWorksheetTab();
+  });
+  document.querySelectorAll('.official-field-pill input[type="checkbox"]').forEach((checkbox) => checkbox.addEventListener('change', () => {
+    const checked = [...document.querySelectorAll('.official-field-pill input[type="checkbox"]:checked')].map((el) => el.value);
+    officialFilters.worksheetColumns = checked;
+    renderWorksheetTab();
+  }));
+  document.querySelectorAll('[data-worksheet-action]').forEach((button) => button.addEventListener('click', () => {
+    const action = button.dataset.worksheetAction;
+    if (action === 'print') window.print();
+    if (action === 'export') downloadWorksheetCsv(searchableRows, selectedColumns);
+  }));
+};
+
 const buildClassSummary = () => {
   const map = new Map();
   allStudents.forEach((student) => {
@@ -471,6 +544,7 @@ const renderAll = () => {
   renderDashboard();
   renderStudents();
   buildClassSummary();
+  renderWorksheetTab();
   renderStaffTab();
   renderHome();
 };
