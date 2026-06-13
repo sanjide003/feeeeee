@@ -2192,8 +2192,31 @@ const renderFeeTable = () => {
     cont.innerHTML = html + `</tbody></table>`;
 };
 
+const getClassSortValue = (classLabel = '') => {
+    const text = String(classLabel || '').toUpperCase();
+    const numberMatch = text.match(/\d+/);
+    if (numberMatch) return Number(numberMatch[0]);
+    if (text.includes('PLUS TWO') || text.includes('+2')) return 12;
+    if (text.includes('PLUS ONE') || text.includes('+1')) return 11;
+    if (text.includes('UKG')) return 0.2;
+    if (text.includes('LKG')) return 0.1;
+    return -1;
+};
+const compareClassesHighToLow = (a = '', b = '') => {
+    const rankDiff = getClassSortValue(b) - getClassSortValue(a);
+    if (rankDiff !== 0) return rankDiff;
+    return String(b || '').localeCompare(String(a || ''), undefined, { numeric: true, sensitivity: 'base' });
+};
+const studentConcGroupSearchText = (student = {}) => [student.name, student.adm, student.class, student.concessionFee]
+    .map((value) => String(value || '').toLowerCase())
+    .join(' ');
+const groupConcGroupSearchText = (group = {}, members = []) => [
+    group.fee,
+    ...members.flatMap((member) => [member.name, member.adm, member.class])
+].map((value) => String(value || '').toLowerCase()).join(' ');
 const renderConcessionGroupOverview = () => {
     const yearSelect = document.getElementById('conc-group-year-select');
+    const searchInput = document.getElementById('conc-group-search-input');
     const selectedYear = yearSelect?.value || currentWorkingAcademicYear || getAcademicYearFromDate();
     if (yearSelect && !yearSelect.dataset.bound) {
         const years = [...new Set(students.map((s) => s.academicYear).filter(Boolean).concat([currentWorkingAcademicYear]).filter(Boolean))].sort(compareAcademicYears);
@@ -2202,25 +2225,46 @@ const renderConcessionGroupOverview = () => {
         yearSelect.dataset.bound = '1';
         yearSelect.addEventListener('change', renderConcessionGroupOverview);
     }
+    if (searchInput && !searchInput.dataset.bound) {
+        searchInput.dataset.bound = '1';
+        searchInput.addEventListener('input', renderConcessionGroupOverview);
+    }
     const activeYear = yearSelect?.value || selectedYear;
+    const searchTerm = (searchInput?.value || '').trim().toLowerCase();
     const yearStudents = students.filter((student) => (student.academicYear || '') === activeYear);
-    const concessionStudents = yearStudents.filter((student) => student.concessionFee !== undefined && student.concessionFee !== null && student.concessionFee !== '');
-    const groupRows = studentGroups
+    const concessionStudents = yearStudents
+        .filter((student) => student.concessionFee !== undefined && student.concessionFee !== null && student.concessionFee !== '')
+        .filter((student) => !searchTerm || studentConcGroupSearchText(student).includes(searchTerm))
+        .sort((a, b) => compareClassesHighToLow(a.class, b.class) || String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
+    const groupEntries = studentGroups
         .filter((group) => (group.academicYear || activeYear) === activeYear)
-        .map((group, idx) => {
-            const memberRows = (group.memberIds || []).map((memberId) => students.find((student) => student.id === memberId)).filter(Boolean);
-            return `<div class="bg-white border border-blue-100 rounded-xl p-4">
-                <div class="font-bold text-blue-800 mb-2">Group ${idx + 1} ${group.fee ? `<span class="text-xs bg-blue-50 px-2 py-1 rounded ml-2">₹${group.fee}/month</span>` : ''}</div>
-                <div class="space-y-1 text-sm">${memberRows.map((member) => `<div>${escapeHtml(member.name || '--')} <span class="text-gray-500">(${escapeHtml(member.class || '--')})</span></div>`).join('') || '<div class="text-gray-400">No members</div>'}</div>
-            </div>`;
+        .map((group) => ({
+            group,
+            members: (group.memberIds || [])
+                .map((memberId) => students.find((student) => student.id === memberId))
+                .filter(Boolean)
+                .sort((a, b) => compareClassesHighToLow(a.class, b.class) || String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }))
+        }))
+        .filter((entry) => !searchTerm || groupConcGroupSearchText(entry.group, entry.members).includes(searchTerm))
+        .sort((a, b) => {
+            const topClassA = a.members[0]?.class || '';
+            const topClassB = b.members[0]?.class || '';
+            return compareClassesHighToLow(topClassA, topClassB)
+                || String(a.members[0]?.name || '').localeCompare(String(b.members[0]?.name || ''), undefined, { sensitivity: 'base' });
         });
+    const groupRows = groupEntries.map(({ group, members }, idx) => `<div class="bg-white border border-blue-100 rounded-xl p-4">
+        <div class="font-bold text-blue-800 mb-2">Group ${idx + 1} ${group.fee ? `<span class="text-xs bg-blue-50 px-2 py-1 rounded ml-2">₹${group.fee}/month</span>` : ''}</div>
+        <div class="space-y-1 text-sm">${members.map((member) => `<div>${escapeHtml(member.name || '--')} <span class="text-gray-500">(${escapeHtml(member.class || '--')}${member.adm ? ` · Adm: ${escapeHtml(member.adm)}` : ''})</span></div>`).join('') || '<div class="text-gray-400">No members</div>'}</div>
+    </div>`);
+    const emptyLabel = searchTerm ? 'No matching records' : 'No concessions';
+    const emptyGroupLabel = searchTerm ? 'No matching groups' : 'No groups';
     document.getElementById('conc-group-summary').innerHTML = `
         <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><div class="text-xs uppercase font-bold text-emerald-700">Concession Students</div><div class="text-2xl font-bold text-emerald-800">${concessionStudents.length}</div></div>
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-3"><div class="text-xs uppercase font-bold text-blue-700">Groups</div><div class="text-2xl font-bold text-blue-800">${groupRows.length}</div></div>`;
     document.getElementById('conc-group-content').innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white border border-gray-200 rounded-xl p-4"><div class="font-bold mb-2 text-gray-800">Concession List</div>${concessionStudents.map((student, idx) => `<div class="text-sm py-1 border-b">${idx + 1}. ${escapeHtml(student.name || '--')} <span class="text-gray-500">(${escapeHtml(student.class || '--')})</span> <span class="font-bold text-emerald-700">₹${escapeHtml(String(student.concessionFee))}</span></div>`).join('') || '<div class="text-sm text-gray-500">No concessions</div>'}</div>
-            <div><div class="font-bold mb-2 text-gray-800">Group List</div><div class="space-y-3">${groupRows.join('') || '<div class="text-sm text-gray-500">No groups</div>'}</div></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-4"><div class="font-bold mb-2 text-gray-800">Concession List</div>${concessionStudents.map((student, idx) => `<div class="text-sm py-1 border-b">${idx + 1}. ${escapeHtml(student.name || '--')} <span class="text-gray-500">(${escapeHtml(student.class || '--')}${student.adm ? ` · Adm: ${escapeHtml(student.adm)}` : ''})</span> <span class="font-bold text-emerald-700">₹${escapeHtml(String(student.concessionFee))}</span></div>`).join('') || `<div class="text-sm text-gray-500">${emptyLabel}</div>`}</div>
+            <div><div class="font-bold mb-2 text-gray-800">Group List</div><div class="space-y-3">${groupRows.join('') || `<div class="text-sm text-gray-500">${emptyGroupLabel}</div>`}</div></div>
         </div>`;
 };
 document.getElementById('conc-group-download-pdf-btn')?.addEventListener('click', () => {
