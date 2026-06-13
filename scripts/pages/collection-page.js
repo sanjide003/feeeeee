@@ -664,13 +664,17 @@ const buildMonthlyReportSummary = (payments) => {
         students: new Set()
     };
 
+    const seenBillingKeys = new Set();
     payments.forEach((payment) => {
-        const amount = Number(payment.amount || 0);
-        summary.totalAmount += amount;
         const itemType = getPaymentItemType(payment);
-        if (itemType === 'donation') summary.donationAmount += amount;
-        else if (itemType === 'month') summary.defaultAmount += amount;
-        else summary.otherAmount += amount;
+        const billingKey = getPaymentBillingKey(payment);
+        const shouldCountAmount = !seenBillingKeys.has(billingKey);
+        if (shouldCountAmount) seenBillingKeys.add(billingKey);
+        const amount = shouldCountAmount ? getMonthlyReportPaymentAmount(payment) : 0;
+        summary.totalAmount = roundMoney(summary.totalAmount + amount);
+        if (itemType === 'donation') summary.donationAmount = roundMoney(summary.donationAmount + amount);
+        else if (itemType === 'month') summary.defaultAmount = roundMoney(summary.defaultAmount + amount);
+        else summary.otherAmount = roundMoney(summary.otherAmount + amount);
         summary.receipts.add(getPaymentGroupKey(payment));
         if (payment.studentId) summary.students.add(payment.studentId);
     });
@@ -1065,6 +1069,27 @@ const buildSelectedItemsForCurrentStudent = () => {
 
 
 const getStudentBillingGroup = (studentId = '') => studentGroups.find((g) => Array.isArray(g.memberIds) && g.memberIds.includes(studentId));
+
+const roundMoney = (value = 0) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+const getPaymentBillingKey = (payment = {}) => payment.billingGroupId && getPaymentItemType(payment) === 'month'
+    ? `${getPaymentGroupKey(payment)}__${payment.itemKey || ''}__${payment.academicYear || ''}__${payment.billingGroupId}`
+    : `${getPaymentGroupKey(payment)}__${payment.studentId || ''}__${payment.itemKey || ''}__${payment.academicYear || ''}`;
+const getMonthlyReportPaymentAmount = (payment = {}) => {
+    if (getPaymentItemType(payment) !== 'month' || !payment.billingGroupId) return roundMoney(payment.amount || 0);
+    const billingGroup = studentGroups.find((group) => group.id === payment.billingGroupId);
+    const groupFee = Number(billingGroup?.fee || 0);
+    return roundMoney(groupFee > 0 ? groupFee : payment.amount || 0);
+};
+const sumReportPaymentsOnce = (payments = [], predicate = () => true) => {
+    const seenBillingKeys = new Set();
+    return roundMoney(payments.reduce((sum, payment) => {
+        if (!predicate(payment)) return sum;
+        const billingKey = getPaymentBillingKey(payment);
+        if (seenBillingKeys.has(billingKey)) return sum;
+        seenBillingKeys.add(billingKey);
+        return sum + getMonthlyReportPaymentAmount(payment);
+    }, 0));
+};
 
 const getGroupMemberStudents = (group = {}) => (group.memberIds || []).map((id) => getStudentById(id)).filter(Boolean);
 
@@ -2256,15 +2281,19 @@ const prepareHistoryData = () => {
             a[k] = {
                 tId: k, r: p.receiptNo||'-', sId: p.studentId, dt: p.paymentDate,
                 ts: pTs, kind: 'fee',
-                i: [], tot: 0, by: getStaffName(p.collectedBy, p.collectedByName), studentIds: []
+                i: [], tot: 0, by: getStaffName(p.collectedBy, p.collectedByName), studentIds: [], seenBillingKeys: new Set()
             };
         } else {
             // Keep the absolute highest (newest) timestamp for accurate sorting of this group
             if (pTs > a[k].ts) a[k].ts = pTs;
         }
         
-        a[k].i.push(p.itemKey); 
-        a[k].tot += p.amount;
+        const billingKey = getPaymentBillingKey(p);
+        if (!a[k].seenBillingKeys.has(billingKey)) {
+            a[k].seenBillingKeys.add(billingKey);
+            a[k].i.push(p.itemKey);
+            a[k].tot = roundMoney(a[k].tot + getMonthlyReportPaymentAmount(p));
+        }
         
         if (!a[k].studentIds.includes(p.studentId)) a[k].studentIds.push(p.studentId);
         
@@ -2506,19 +2535,8 @@ const renderMonthlyCollectedPage = (searchTerm = '') => {
             const tid = p.transactionId || p.receiptNo;
             if (!uTxns[tid]) {
                 const pt = monthPays.filter(pay => (pay.transactionId || pay.receiptNo) === tid);
-                let m = 0;
-                let c = 0;
-                const seenBilling = new Set();
-                pt.forEach(pay => {
-                    const billingKey = pay.billingGroupId
-                        ? `${pay.transactionId || pay.receiptNo || 'tx'}__${pay.itemKey || ''}__${pay.academicYear || ''}__${pay.billingGroupId}`
-                        : '';
-                    if (billingKey && seenBilling.has(billingKey)) return;
-                    if (billingKey) seenBilling.add(billingKey);
-                    const itemType = getPaymentItemType(pay);
-                    if (itemType === 'month') m += Number(pay.amount || 0);
-                    else c += Number(pay.amount || 0);
-                });
+                const m = sumReportPaymentsOnce(pt, (pay) => getPaymentItemType(pay) === 'month');
+                const c = sumReportPaymentsOnce(pt, (pay) => getPaymentItemType(pay) !== 'month');
                 uTxns[tid] = { m, c };
             }
         });
@@ -2529,11 +2547,11 @@ const renderMonthlyCollectedPage = (searchTerm = '') => {
         const mF = feePays.filter((p) => getPaymentItemType(p) === 'month');
         const studentDonationPays = feePays.filter((p) => p.itemKey === STUDENT_DONATION_ITEM_KEY);
         const cF = feePays.filter((p) => getPaymentItemType(p) === 'custom' && p.itemKey !== STUDENT_DONATION_ITEM_KEY);
-        const defaultTotal = mTot;
-        const donationTotal = donationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
-            + studentDonationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
-        const otherTotal = cTot - studentDonationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
-        const grandTotal = defaultTotal + donationTotal + otherTotal;
+        const defaultTotal = roundMoney(mTot);
+        const donationTotal = roundMoney(donationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+            + studentDonationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
+        const otherTotal = roundMoney(cTot - studentDonationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
+        const grandTotal = roundMoney(defaultTotal + donationTotal + otherTotal);
 
         let html = `<div class="bg-gray-50 border p-4 rounded-xl"><div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 cursor-pointer month-header"><div><h3 class="text-base font-bold">${formatMonthLabel(mk)}</h3><p class="text-xs text-gray-500 font-medium mt-1">${Object.keys(uTxns).length} receipt groups • ${new Set(monthPays.map((payment) => payment.studentId)).size} students</p></div><div class="flex flex-wrap items-center gap-2 text-[11px] font-bold"><span class="bg-white px-2 py-1 rounded border">Default: ${formatCurrency(defaultTotal)}</span><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200">Donation: ${formatCurrency(donationTotal)}</span><span class="bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200">Other: ${formatCurrency(otherTotal)}</span><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200">Total: ${formatCurrency(grandTotal)}</span><i class="fas fa-chevron-down month-toggle-icon text-gray-400 ${mk === currentMK ? 'rotate-180' : ''} transition ml-1"></i></div></div><div class="month-details-container overflow-x-auto mt-4 pt-4 border-t ${mk === currentMK ? '' : 'hidden'}">`;
         if (mF.length > 0) {
@@ -2544,7 +2562,7 @@ const renderMonthlyCollectedPage = (searchTerm = '') => {
                     ? `${txnKey}__${payment.itemKey || ''}__${payment.academicYear || ''}__${payment.billingGroupId}`
                     : '';
                 if (!(billingKey && acc[txnKey].seenBilling.has(billingKey))) {
-                    acc[txnKey].total += Number(payment.amount || 0);
+                    acc[txnKey].total = roundMoney(acc[txnKey].total + getMonthlyReportPaymentAmount(payment));
                     if (billingKey) acc[txnKey].seenBilling.add(billingKey);
                 }
                 const student = getStudentById(payment.studentId) || {};
