@@ -1309,6 +1309,10 @@ window.AppSession?.guardStudentPage?.();
                     }
                     const staffName = donationSummary ? donationSummary.collectedByName : (pay.collectedByName || pay.collectedBy || 'Admin');
                     const receiptNo = donationSummary ? donationSummary.receiptNo : (pay.receiptNo ? String(pay.receiptNo) : 'N/A');
+                    const paymentDescription = donationSummary ? '' : String(pay.description || '').trim();
+                    const paymentDescriptionHtml = paymentDescription
+                        ? `<div class="mb-3 border-b border-gray-100 pb-3"><div class="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">Description</div><div class="text-sm font-semibold text-gray-800 whitespace-pre-wrap break-words">${escapeHtml(paymentDescription)}</div></div>`
+                        : '';
                     const paidInsight = {
                         status: 'paid',
                         academicYear: activeYear,
@@ -1333,6 +1337,7 @@ window.AppSession?.guardStudentPage?.();
                                 <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2"><span class="text-xs text-gray-500 font-bold uppercase tracking-wide">Receipt No</span><span class="text-sm font-bold font-mono bg-green-50 text-green-700 px-3 py-1 rounded border border-green-200">${escapeHtml(receiptNo)}</span></div>
                                 <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2"><span class="text-xs text-gray-500 font-bold uppercase tracking-wide">Date Paid</span><span class="text-sm font-bold text-gray-800">${escapeHtml(dateStr)}</span></div>
                                 <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2"><span class="text-xs text-gray-500 font-bold uppercase tracking-wide">Class</span><span class="text-sm font-bold text-gray-700">${escapeHtml((pay && pay.classLabel) || classLabel)}</span></div>
+                                ${paymentDescriptionHtml}
                                 <div class="flex justify-between items-center pt-1"><span class="text-xs text-gray-500 font-bold uppercase tracking-wide flex-shrink-0 mr-4">Collected By</span><span class="text-xs font-bold text-blue-600 text-right w-full whitespace-normal" style="word-break: break-word;">${escapeHtml(staffName)}</span></div>
                             </div>
                         </div>`;
