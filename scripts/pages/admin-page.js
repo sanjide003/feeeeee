@@ -1808,15 +1808,19 @@ const populateEditGroupClassFilter = () => {
 const populateEditGroupStudentOptions = () => {
     const cls = document.getElementById('e-grp-class-filter').value;
     const gen = document.getElementById('e-grp-gender-filter').value;
-    const studentSelect = document.getElementById('e-grp-student-select');
+    const studentInput = document.getElementById('e-grp-student-select');
+    const studentOptions = document.getElementById('e-grp-student-options');
+    if(!studentInput || !studentOptions) return;
     if(!cls) {
-        studentSelect.innerHTML = '<option value="">Select class first...</option>';
+        studentInput.value = '';
+        studentInput.placeholder = 'Select class first...';
+        studentOptions.innerHTML = '';
         return;
     }
-    const options = students
-        .filter((s) => s.class === cls && s.gender === gen && !editGroupWorkingMembers.includes(s.id))
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    studentSelect.innerHTML = '<option value="">Select Student...</option>' + options.map((s) => `<option value="${s.id}">${escapeHtml(s.name || '-')} (Adm: ${escapeHtml(s.adm || '-')})</option>`).join('');
+    studentOptions.innerHTML = getGroupStudentOptions(cls, gen, editGroupWorkingMembers)
+        .map((student) => `<option value="${escapeHtml(getStudentDisplayLabel(student))}"></option>`)
+        .join('');
+    studentInput.placeholder = 'Type student name...';
 };
 document.getElementById('student-groups-list').addEventListener('click', e => {
     const delBtn = e.target.closest('.del-grp'), editBtn = e.target.closest('.edit-grp');
@@ -1840,12 +1844,16 @@ document.getElementById('student-groups-list').addEventListener('click', e => {
     }
 });
 document.getElementById('edit-group-cancel').onclick = () => document.getElementById('edit-group-popup').classList.add('hidden');
-document.getElementById('e-grp-class-filter').addEventListener('change', populateEditGroupStudentOptions);
-document.getElementById('e-grp-gender-filter').addEventListener('change', populateEditGroupStudentOptions);
+document.getElementById('e-grp-class-filter').addEventListener('change', () => { document.getElementById('e-grp-student-select').value = ''; populateEditGroupStudentOptions(); });
+document.getElementById('e-grp-gender-filter').addEventListener('change', () => { document.getElementById('e-grp-student-select').value = ''; populateEditGroupStudentOptions(); });
 document.getElementById('e-grp-add-member').addEventListener('click', () => {
-    const studentId = document.getElementById('e-grp-student-select').value;
-    if(!studentId || editGroupWorkingMembers.includes(studentId)) return;
+    const studentInput = document.getElementById('e-grp-student-select');
+    const cls = document.getElementById('e-grp-class-filter').value;
+    const gen = document.getElementById('e-grp-gender-filter').value;
+    const studentId = findStudentFromTypedGroupValue(studentInput.value, cls, gen, editGroupWorkingMembers)?.id || '';
+    if(!studentId || editGroupWorkingMembers.includes(studentId)) return alert('Please select a valid student from the suggestions.');
     editGroupWorkingMembers.push(studentId);
+    studentInput.value = '';
     renderEditGroupMembers();
     populateEditGroupStudentOptions();
 });
