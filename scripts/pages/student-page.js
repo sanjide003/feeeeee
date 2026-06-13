@@ -242,7 +242,6 @@ window.AppSession?.guardStudentPage?.();
         let rawNotices = [];
         let rawFeeAlerts = [];
         let rawResultAlerts = [];
-        const sessionReadFeeIds = new Set();
         let latestMergedNotifications = [];
 
         const toggleNotifyPanel = (show) => {
@@ -414,7 +413,7 @@ window.AppSession?.guardStudentPage?.();
             latestMergedNotifications = merged;
             const visibleNotifications = merged.filter((notification) => {
                 const isRead = notification.type === 'fee'
-                    ? sessionReadFeeIds.has(notification.id)
+                    ? false
                     : (notification.timestamp <= notifState.lastMarkedAllReadAt || notifState.readIds.includes(notification.id));
                 notification.isRead = isRead;
                 return !isRead;
@@ -479,7 +478,6 @@ window.AppSession?.guardStudentPage?.();
         window.handleNotifyClick = async (notifId, targetStr) => {
             const notification = latestMergedNotifications.find((item) => item.id === notifId);
             if (notification?.type === 'fee') {
-                sessionReadFeeIds.add(notifId);
                 renderNotificationPanel();
             } else if (!notifState.readIds.includes(notifId)) {
                 notifState.readIds.push(notifId);
@@ -732,25 +730,21 @@ window.AppSession?.guardStudentPage?.();
             const currentYear = currentAcademicYear || st?.academicYear || selectedFeeAcademicYear || '';
 
             if (currentYear) {
-                const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 20, 0, 0);
-                const daysUntilMonthEnd = Math.ceil((monthEnd.getTime() - nowTs) / 86400000);
-                if (daysUntilMonthEnd <= 5) {
-                    const currentSummary = getFeeYearSummary(st, currentYear);
-                    const currentMonthDue = currentSummary.dueItems.find((due) => due.monthIndex === now.getMonth());
-                    if (currentMonthDue) {
-                        alerts.push({
-                            id: `fee-month-end-${currentYear}-${now.getMonth() + 1}`,
-                            type: 'fee',
-                            icon: 'fa-calendar-check',
-                            title: `${formatMonthFeeCardName(currentMonthDue.name)} Fee Reminder`,
-                            message: `${formatMonthFeeCardName(currentMonthDue.name)} fee of ${formatCurrency(currentMonthDue.amount)} is pending. Please clear it before month-end (${monthEnd.toLocaleDateString('en-GB')}).`,
-                            timestamp: nowTs,
-                            target: 'fees-page'
-                        });
-                    }
+                const currentSummary = getFeeYearSummary(st, currentYear);
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+                const currentMonthDue = currentSummary.dueItems.find((due) => due.monthIndex === now.getMonth());
+                if (currentMonthDue) {
+                    alerts.push({
+                        id: `fee-current-due-${currentYear}-${now.getMonth() + 1}-${currentMonthDue.item?.key || currentMonthDue.name}`,
+                        type: 'fee',
+                        icon: 'fa-calendar-check',
+                        title: `${formatMonthFeeCardName(currentMonthDue.name)} Fee Pending`,
+                        message: `${formatMonthFeeCardName(currentMonthDue.name)} fee of ${formatCurrency(currentMonthDue.amount)} is pending for this month. This notification will clear after payment is recorded.`,
+                        timestamp: monthStart.getTime(),
+                        target: 'fees-page'
+                    });
                 }
 
-                const currentSummary = getFeeYearSummary(st, currentYear);
                 const monthOrder = getAcademicMonthSequence(currentYear);
                 const currentMonthOrderIndex = monthOrder.indexOf(now.getMonth());
                 currentSummary.dueItems.forEach((due) => {
