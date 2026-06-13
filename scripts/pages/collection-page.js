@@ -2580,7 +2580,7 @@ const renderMonthlyCollectedPage = (searchTerm = '') => {
             if (!uTxns[tid]) {
                 const pt = monthPays.filter(pay => (pay.transactionId || pay.receiptNo) === tid);
                 const m = sumReportPaymentsOnce(pt, (pay) => getPaymentItemType(pay) === 'month');
-                const c = sumReportPaymentsOnce(pt, (pay) => getPaymentItemType(pay) !== 'month');
+                const c = sumReportPaymentsOnce(pt, (pay) => getPaymentItemType(pay) === 'custom');
                 uTxns[tid] = { m, c };
             }
         });
@@ -2594,7 +2594,7 @@ const renderMonthlyCollectedPage = (searchTerm = '') => {
         const defaultTotal = roundMoney(mTot);
         const donationTotal = roundMoney(donationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
             + studentDonationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
-        const otherTotal = roundMoney(cTot - studentDonationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
+        const otherTotal = roundMoney(cTot);
         const grandTotal = roundMoney(defaultTotal + donationTotal + otherTotal);
 
         let html = `<div class="bg-gray-50 border p-4 rounded-xl"><div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 cursor-pointer month-header"><div><h3 class="text-base font-bold">${formatMonthLabel(mk)}</h3><p class="text-xs text-gray-500 font-medium mt-1">${Object.keys(uTxns).length} receipt groups • ${new Set(monthPays.map((payment) => payment.studentId)).size} students</p></div><div class="flex flex-wrap items-center gap-2 text-[11px] font-bold"><span class="bg-white px-2 py-1 rounded border">Default: ${formatCurrency(defaultTotal)}</span><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200">Donation: ${formatCurrency(donationTotal)}</span><span class="bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200">Other: ${formatCurrency(otherTotal)}</span><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200">Total: ${formatCurrency(grandTotal)}</span><i class="fas fa-chevron-down month-toggle-icon text-gray-400 ${mk === currentMK ? 'rotate-180' : ''} transition ml-1"></i></div></div><div class="month-details-container overflow-x-auto mt-4 pt-4 border-t ${mk === currentMK ? '' : 'hidden'}">`;
