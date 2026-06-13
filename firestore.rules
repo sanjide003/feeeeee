@@ -122,6 +122,13 @@ service cloud.firestore {
       allow write: if isAdmin(institutionId) || isCollectionSession();
     }
 
+    match /institutions/{institutionId}/studentNotificationState/{docId} {
+      allow read: if true;
+      allow write: if hasOnlyKeys(request.resource.data, ['lastMarkedAllReadAt', 'readIds'])
+        && (!('lastMarkedAllReadAt' in request.resource.data) || request.resource.data.lastMarkedAllReadAt is number)
+        && (!('readIds' in request.resource.data) || request.resource.data.readIds is list);
+    }
+
     match /institutions/{institutionId}/payments/{docId} {
       allow read: if isAdmin(institutionId) || isCollectionSession();
       allow write: if isAdmin(institutionId) || (isCollectionSession() && validPaymentWrite());

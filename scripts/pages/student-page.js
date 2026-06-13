@@ -242,7 +242,6 @@ window.AppSession?.guardStudentPage?.();
         let rawNotices = [];
         let rawFeeAlerts = [];
         let rawResultAlerts = [];
-        const sessionReadFeeIds = new Set();
         let latestMergedNotifications = [];
 
         const toggleNotifyPanel = (show) => {
@@ -414,7 +413,7 @@ window.AppSession?.guardStudentPage?.();
             latestMergedNotifications = merged;
             const visibleNotifications = merged.filter((notification) => {
                 const isRead = notification.type === 'fee'
-                    ? sessionReadFeeIds.has(notification.id)
+                    ? false
                     : (notification.timestamp <= notifState.lastMarkedAllReadAt || notifState.readIds.includes(notification.id));
                 notification.isRead = isRead;
                 return !isRead;
@@ -479,7 +478,6 @@ window.AppSession?.guardStudentPage?.();
         window.handleNotifyClick = async (notifId, targetStr) => {
             const notification = latestMergedNotifications.find((item) => item.id === notifId);
             if (notification?.type === 'fee') {
-                sessionReadFeeIds.add(notifId);
                 renderNotificationPanel();
             } else if (!notifState.readIds.includes(notifId)) {
                 notifState.readIds.push(notifId);
@@ -732,25 +730,21 @@ window.AppSession?.guardStudentPage?.();
             const currentYear = currentAcademicYear || st?.academicYear || selectedFeeAcademicYear || '';
 
             if (currentYear) {
-                const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 20, 0, 0);
-                const daysUntilMonthEnd = Math.ceil((monthEnd.getTime() - nowTs) / 86400000);
-                if (daysUntilMonthEnd <= 5) {
-                    const currentSummary = getFeeYearSummary(st, currentYear);
-                    const currentMonthDue = currentSummary.dueItems.find((due) => due.monthIndex === now.getMonth());
-                    if (currentMonthDue) {
-                        alerts.push({
-                            id: `fee-month-end-${currentYear}-${now.getMonth() + 1}`,
-                            type: 'fee',
-                            icon: 'fa-calendar-check',
-                            title: `${formatMonthFeeCardName(currentMonthDue.name)} Fee Reminder`,
-                            message: `${formatMonthFeeCardName(currentMonthDue.name)} fee of ${formatCurrency(currentMonthDue.amount)} is pending. Please clear it before month-end (${monthEnd.toLocaleDateString('en-GB')}).`,
-                            timestamp: nowTs,
-                            target: 'fees-page'
-                        });
-                    }
+                const currentSummary = getFeeYearSummary(st, currentYear);
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+                const currentMonthDue = currentSummary.dueItems.find((due) => due.monthIndex === now.getMonth());
+                if (currentMonthDue) {
+                    alerts.push({
+                        id: `fee-current-due-${currentYear}-${now.getMonth() + 1}-${currentMonthDue.item?.key || currentMonthDue.name}`,
+                        type: 'fee',
+                        icon: 'fa-calendar-check',
+                        title: `${formatMonthFeeCardName(currentMonthDue.name)} Fee Pending`,
+                        message: `${formatMonthFeeCardName(currentMonthDue.name)} fee of ${formatCurrency(currentMonthDue.amount)} is pending for this month. This notification will clear after payment is recorded.`,
+                        timestamp: monthStart.getTime(),
+                        target: 'fees-page'
+                    });
                 }
 
-                const currentSummary = getFeeYearSummary(st, currentYear);
                 const monthOrder = getAcademicMonthSequence(currentYear);
                 const currentMonthOrderIndex = monthOrder.indexOf(now.getMonth());
                 currentSummary.dueItems.forEach((due) => {
@@ -1309,6 +1303,10 @@ window.AppSession?.guardStudentPage?.();
                     }
                     const staffName = donationSummary ? donationSummary.collectedByName : (pay.collectedByName || pay.collectedBy || 'Admin');
                     const receiptNo = donationSummary ? donationSummary.receiptNo : (pay.receiptNo ? String(pay.receiptNo) : 'N/A');
+                    const paymentDescription = donationSummary ? '' : String(pay.description || '').trim();
+                    const paymentDescriptionHtml = paymentDescription
+                        ? `<div class="mb-3 border-b border-gray-100 pb-3"><div class="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">Description</div><div class="text-sm font-semibold text-gray-800 whitespace-pre-wrap break-words">${escapeHtml(paymentDescription)}</div></div>`
+                        : '';
                     const paidInsight = {
                         status: 'paid',
                         academicYear: activeYear,
@@ -1333,6 +1331,7 @@ window.AppSession?.guardStudentPage?.();
                                 <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2"><span class="text-xs text-gray-500 font-bold uppercase tracking-wide">Receipt No</span><span class="text-sm font-bold font-mono bg-green-50 text-green-700 px-3 py-1 rounded border border-green-200">${escapeHtml(receiptNo)}</span></div>
                                 <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2"><span class="text-xs text-gray-500 font-bold uppercase tracking-wide">Date Paid</span><span class="text-sm font-bold text-gray-800">${escapeHtml(dateStr)}</span></div>
                                 <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2"><span class="text-xs text-gray-500 font-bold uppercase tracking-wide">Class</span><span class="text-sm font-bold text-gray-700">${escapeHtml((pay && pay.classLabel) || classLabel)}</span></div>
+                                ${paymentDescriptionHtml}
                                 <div class="flex justify-between items-center pt-1"><span class="text-xs text-gray-500 font-bold uppercase tracking-wide flex-shrink-0 mr-4">Collected By</span><span class="text-xs font-bold text-blue-600 text-right w-full whitespace-normal" style="word-break: break-word;">${escapeHtml(staffName)}</span></div>
                             </div>
                         </div>`;

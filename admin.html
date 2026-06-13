@@ -946,12 +946,13 @@
                     </select>
                 </div>
                 <div class="flex gap-2">
-                    <select id="e-grp-student-select" class="flex-grow p-2.5 border rounded-lg bg-white text-sm font-semibold">
-                        <option value="">Select Student...</option>
-                    </select>
+                    <div class="flex-grow">
+                        <input id="e-grp-student-select" list="e-grp-student-options" class="w-full p-2.5 border rounded-lg bg-white text-sm font-semibold" autocomplete="off" placeholder="Select class first...">
+                        <datalist id="e-grp-student-options"></datalist>
+                    </div>
                     <button id="e-grp-add-member" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 text-sm">Add</button>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Pick a class to support cross-class grouping while editing.</p>
+                <p class="text-xs text-gray-500 mt-2">Pick a class, type a student name, then choose from the suggestions.</p>
             </div>
             <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
                 <button id="edit-group-cancel" class="px-5 py-2.5 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">Cancel</button>
