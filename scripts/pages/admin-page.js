@@ -1749,8 +1749,44 @@ moveBtn.addEventListener('click', async () => {
 });
 
 // --- 5. GROUPS ---
+const getStudentDisplayLabel = (student) => `${student?.name || '-'} (${student?.class || '--'}${student?.adm ? ` • Adm: ${student.adm}` : ''})`;
+const getGroupStudentOptions = (className, gender, excludedIds = []) => students
+    .filter((student) => student.class === className && student.gender === gender && !excludedIds.includes(student.id))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+const findStudentFromTypedGroupValue = (value, className, gender, excludedIds = []) => {
+    const normalizedValue = (value || '').trim().toLowerCase();
+    if(!normalizedValue) return null;
+    return getGroupStudentOptions(className, gender, excludedIds).find((student) => {
+        const label = getStudentDisplayLabel(student).toLowerCase();
+        return student.id === value || label === normalizedValue || (student.name || '').trim().toLowerCase() === normalizedValue;
+    }) || null;
+};
+const renderGroupStudentDatalist = (idx) => {
+    const className = document.querySelector(`.grp-cls[data-idx="${idx}"]`)?.value || '';
+    const gender = document.querySelector(`.grp-gen[data-idx="${idx}"]`)?.value || '';
+    const datalist = document.getElementById(`grp-stu-options-${idx}`);
+    const input = document.getElementById(`grp-stu-${idx}`);
+    if(!datalist || !input) return;
+    if(!className || !gender) {
+        datalist.innerHTML = '';
+        input.value = '';
+        input.placeholder = 'Select class and gender first...';
+        return;
+    }
+    datalist.innerHTML = getGroupStudentOptions(className, gender)
+        .map((student) => `<option value="${escapeHtml(getStudentDisplayLabel(student))}"></option>`)
+        .join('');
+    input.placeholder = 'Type student name...';
+};
 const renderStudentGroups = () => {
-     document.getElementById('student-groups-list').innerHTML = studentGroups.length === 0 ? '<p class="text-gray-500 italic p-3">No groups created yet.</p>' : studentGroups.map((g, i) => `<div class="bg-white border border-gray-200 p-4 rounded-xl shadow-sm flex justify-between items-center mb-3"><div class="flex flex-col"><span class="font-bold text-lg text-gray-800">Group ${i+1}</span><span class="text-gray-500 text-sm font-medium"><i class="fas fa-users mr-1"></i> ${g.memberIds.length} Linked Students ${g.fee > 0 ? `<span class="ml-2 text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-bold">₹${g.fee}/month</span>` : ''}</span></div><div><button class="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-sm font-bold transition edit-grp mr-2" data-id="${g.id}"><i class="fas fa-edit"></i> Edit</button><button class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg text-sm font-bold transition del-grp" data-id="${g.id}"><i class="fas fa-trash"></i></button></div></div>`).join('');
+     document.getElementById('student-groups-list').innerHTML = studentGroups.length === 0 ? '<p class="text-gray-500 italic p-3">No groups created yet.</p>' : studentGroups.map((g) => {
+        const memberCards = (g.memberIds || []).map((memberId) => {
+            const student = students.find((entry) => entry.id === memberId);
+            if(!student) return `<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-xs font-bold">Missing student</span>`;
+            return `<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold">${escapeHtml(student.name || '-')} <span class="ml-1 text-slate-500">(${escapeHtml(student.class || '--')})</span></span>`;
+        }).join('');
+        return `<div class="bg-white border border-gray-200 p-4 rounded-xl shadow-sm flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-3"><div class="flex flex-col gap-2"><div class="flex flex-wrap gap-2">${memberCards}</div><span class="text-gray-500 text-sm font-medium"><i class="fas fa-users mr-1"></i> ${(g.memberIds || []).length} Linked Students ${g.fee > 0 ? `<span class="ml-2 text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-bold">₹${g.fee}/month</span>` : ''}</span></div><div class="shrink-0"><button class="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-sm font-bold transition edit-grp mr-2" data-id="${g.id}"><i class="fas fa-edit"></i> Edit</button><button class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg text-sm font-bold transition del-grp" data-id="${g.id}"><i class="fas fa-trash"></i></button></div></div>`;
+     }).join('');
 };
 const renderEditGroupMembers = () => {
     const membersNode = document.getElementById('e-grp-members');
@@ -1839,23 +1875,27 @@ document.getElementById('num-of-students-group').addEventListener('input', e => 
     if(count < 2) return;
     const clsOpts = `<option value="">Select Class</option>` + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
     for(let i=0; i<count; i++) {
-        cont.innerHTML += `<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-4 border-b border-gray-100 mb-2"><select class="grp-cls p-2.5 border rounded-lg bg-gray-50 text-sm font-semibold" data-idx="${i}">${clsOpts}</select><select class="grp-gen p-2.5 border rounded-lg bg-gray-50 text-sm font-semibold" data-idx="${i}"><option value="Male">Male</option><option value="Female">Female</option></select><select id="grp-stu-${i}" class="grp-stu p-2.5 border rounded-lg text-sm font-semibold sm:col-span-3 bg-white"><option value="">Select Student...</option></select></div>`;
+        cont.innerHTML += `<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-4 border-b border-gray-100 mb-2"><select class="grp-cls p-2.5 border rounded-lg bg-gray-50 text-sm font-semibold" data-idx="${i}">${clsOpts}</select><select class="grp-gen p-2.5 border rounded-lg bg-gray-50 text-sm font-semibold" data-idx="${i}"><option value="Male">Male</option><option value="Female">Female</option></select><div class="sm:col-span-3"><input id="grp-stu-${i}" list="grp-stu-options-${i}" class="grp-stu p-2.5 border rounded-lg text-sm font-semibold bg-white w-full" data-idx="${i}" autocomplete="off" placeholder="Select class and gender first..."><datalist id="grp-stu-options-${i}"></datalist><p class="text-xs text-gray-500 mt-1">Type a student name and pick from suggestions.</p></div></div>`;
     }
 });
 document.getElementById('group-creation-container').addEventListener('change', e => {
     if(e.target.classList.contains('grp-cls') || e.target.classList.contains('grp-gen')) {
-        const idx = e.target.dataset.idx, cls = document.querySelector(`.grp-cls[data-idx="${idx}"]`).value, gen = document.querySelector(`.grp-gen[data-idx="${idx}"]`).value;
-        if(cls && gen) {
-            const stuList = students.filter(s => s.class === cls && s.gender === gen).sort((a,b)=>(a.name||'').localeCompare(b.name));
-            document.getElementById(`grp-stu-${idx}`).innerHTML = '<option value="">Select Student...</option>' + stuList.map(s=>`<option value="${s.id}">${s.name} (Adm: ${s.adm||'-'})</option>`).join('');
-        }
+        const idx = e.target.dataset.idx;
+        const input = document.getElementById(`grp-stu-${idx}`);
+        if(input) input.value = '';
+        renderGroupStudentDatalist(idx);
     }
 });
 document.getElementById('create-group-btn').addEventListener('click', async () => {
     if(!requirePermission('groups.manage')) return;
-    const selects = Array.from(document.querySelectorAll('.grp-stu')).map(s=>s.value).filter(Boolean);
+    const selects = Array.from(document.querySelectorAll('.grp-stu')).map((input) => {
+        const idx = input.dataset.idx;
+        const className = document.querySelector(`.grp-cls[data-idx="${idx}"]`)?.value || '';
+        const gender = document.querySelector(`.grp-gen[data-idx="${idx}"]`)?.value || '';
+        return findStudentFromTypedGroupValue(input.value, className, gender)?.id || '';
+    }).filter(Boolean);
     const fee = parseFloat(document.getElementById('group-monthly-fee').value) || 0;
-    if(selects.length < 2 || new Set(selects).size !== selects.length) return alert("Please select unique valid students.");
+    if(selects.length < 2 || new Set(selects).size !== selects.length) return alert("Please select unique valid students from the suggestions.");
 
     if(!confirm("പുതിയ ഗ്രൂപ്പ് ക്രിയേറ്റ് ചെയ്യട്ടെ?")) return;
 
