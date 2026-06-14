@@ -761,6 +761,63 @@ const exportMonthlySummaryCsv = (searchTerm = '') => {
 };
 
 // --- DASHBOARD RENDER ---
+const renderDashboardStudentClassTable = () => {
+    const tableHost = document.getElementById('dash-students-class-table');
+    if (!tableHost) return;
+
+    const classNames = [...new Set([
+        ...classes,
+        ...students.map((student) => student.class).filter(Boolean)
+    ])].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
+
+    const rows = classNames.map((className) => {
+        const classStudents = students.filter((student) => student.class === className);
+        const boys = classStudents.filter((student) => String(student.gender || '').toLowerCase().startsWith('male')).length;
+        const girls = classStudents.filter((student) => String(student.gender || '').toLowerCase().startsWith('female')).length;
+        return { className, boys, girls, total: classStudents.length };
+    }).filter((row) => row.total > 0);
+
+    const totals = rows.reduce((acc, row) => ({
+        boys: acc.boys + row.boys,
+        girls: acc.girls + row.girls,
+        total: acc.total + row.total
+    }), { boys: 0, girls: 0, total: 0 });
+
+    if (!rows.length) {
+        tableHost.innerHTML = '<div class="p-4 text-center text-xs font-semibold text-gray-400">No student data available.</div>';
+        return;
+    }
+
+    tableHost.innerHTML = `
+        <table class="w-full text-xs sm:text-sm text-left">
+            <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[10px] sm:text-xs">
+                <tr>
+                    <th class="px-4 py-2 font-bold">Class</th>
+                    <th class="px-4 py-2 font-bold text-right">Boys</th>
+                    <th class="px-4 py-2 font-bold text-right">Girls</th>
+                    <th class="px-4 py-2 font-bold text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map((row) => `
+                    <tr class="border-t border-gray-100 hover:bg-indigo-50/30">
+                        <td class="px-4 py-2 font-semibold text-gray-800">${escapeHtml(row.className)}</td>
+                        <td class="px-4 py-2 text-right text-blue-700 font-bold">${row.boys}</td>
+                        <td class="px-4 py-2 text-right text-pink-700 font-bold">${row.girls}</td>
+                        <td class="px-4 py-2 text-right text-gray-900 font-extrabold">${row.total}</td>
+                    </tr>`).join('')}
+            </tbody>
+            <tfoot class="bg-indigo-50 border-t border-indigo-100">
+                <tr>
+                    <td class="px-4 py-2 font-extrabold text-indigo-900">Total</td>
+                    <td class="px-4 py-2 text-right font-extrabold text-indigo-900">${totals.boys}</td>
+                    <td class="px-4 py-2 text-right font-extrabold text-indigo-900">${totals.girls}</td>
+                    <td class="px-4 py-2 text-right font-extrabold text-indigo-900">${totals.total}</td>
+                </tr>
+            </tfoot>
+        </table>`;
+};
+
 const updateDashboardMetrics = () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const currentMonthStr = todayStr.substring(0, 7);
@@ -784,6 +841,7 @@ const updateDashboardMetrics = () => {
     document.getElementById('dash-month-amt').textContent = monthTotal.toFixed(0);
     document.getElementById('dash-today-receipts').textContent = todayReceipts.size;
     document.getElementById('dash-students-count').textContent = students.length;
+    renderDashboardStudentClassTable();
 };
 
 const getAvailableFeeYearsForStudent = (student) => {
