@@ -2267,17 +2267,6 @@ const renderConcessionGroupOverview = () => {
             <div><div class="font-bold mb-2 text-gray-800">Group List</div><div class="space-y-3">${groupRows.join('') || `<div class="text-sm text-gray-500">${emptyGroupLabel}</div>`}</div></div>
         </div>`;
 };
-document.getElementById('conc-group-download-pdf-btn')?.addEventListener('click', () => {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-    const text = document.getElementById('conc-group-content')?.innerText || 'No data';
-    pdf.setFontSize(14);
-    pdf.text('Concession & Group Overview', 14, 16);
-    pdf.setFontSize(10);
-    pdf.text(text.split('\n').slice(0, 220), 14, 24);
-    pdf.save('concession-group-overview.pdf');
-});
-
 // --- HISTORY RENDER ---
 const updateHistoryStaffFilter = () => {
     const filterEl = document.getElementById('history-staff-filter');
