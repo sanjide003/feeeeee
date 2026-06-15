@@ -76,8 +76,6 @@
                 <a href="#web-basic-info" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-globe w-5 text-center"></i><span class="text-sm">Basic Info</span></a>
                 <a href="#web-notices" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-bell w-5 text-center"></i><span class="text-sm">Notifications</span></a>
                 <a href="#web-gallery" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-images w-5 text-center"></i><span class="text-sm">Gallery</span></a>
-                <a href="#web-directory" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-layer-group w-5 text-center"></i><span class="text-sm">Add Categories</span></a>
-                <a href="#web-directory-entries" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-id-card-alt w-5 text-center"></i><span class="text-sm">Category Entries</span></a>
 
                 <div class="drawer-heading">System</div>
                 <a href="#security-settings" class="nav-link drawer-link flex items-center gap-3 p-3 transition"><i class="fas fa-shield-alt w-5 text-center"></i><span class="text-sm">Security Settings</span></a>
@@ -215,10 +213,21 @@
             
             <!-- 1. Staff Management -->
             <section id="manage-staff-page" class="page hidden">
+                <div class="card p-5 rounded-xl shadow-sm mb-6 border border-emerald-100 bg-emerald-50/40">
+                    <h2 class="text-xl font-bold mb-4 text-emerald-900 border-b border-emerald-200 pb-2"><i class="fas fa-layer-group mr-2"></i>Staff Categories</h2>
+                    <p class="text-sm text-emerald-700 mb-4">Create categories here. New categories will appear in the Type dropdown below and profiles can be managed from Staff Management.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3">
+                        <input type="text" id="dir-cat-name" class="p-2.5 border rounded-lg" placeholder="Category Name (e.g. Drivers)">
+                        <input type="number" id="dir-cat-order" class="p-2.5 border rounded-lg w-full md:w-24" min="1" value="1" placeholder="Order">
+                        <label class="inline-flex items-center gap-2 text-sm font-semibold bg-white border rounded-lg px-3"><input type="checkbox" id="dir-cat-public" checked class="w-4 h-4"> Show in Public</label>
+                        <button id="dir-cat-add-btn" class="btn-primary font-bold px-6 py-2.5 rounded-lg">Add Category</button>
+                    </div>
+                    <div id="dir-categories-list" class="space-y-3 mt-4"></div>
+                </div>
                 <div class="card p-5 rounded-xl shadow-sm mb-6">
                     <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Add New Staff</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div class="md:col-span-1"><label class="block text-sm font-semibold mb-1">1. Type <span class="mandatory-star">*</span></label><select id="st-type" class="w-full p-2.5 border rounded-lg"><option value="Teacher">Teacher</option><option value="Management">Management</option></select></div>
+                        <div class="md:col-span-1"><label class="block text-sm font-semibold mb-1">1. Type <span class="mandatory-star">*</span></label><select id="st-type" class="w-full p-2.5 border rounded-lg"></select></div>
                         <div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">2. Full Name <span class="mandatory-star">*</span></label><input type="text" id="st-name" class="w-full p-2.5 border rounded-lg" placeholder="e.g. John Doe"></div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -247,11 +256,19 @@
                         <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="st-active" class="w-4 h-4 rounded text-blue-600" checked><span class="text-sm font-medium text-gray-600">9. Active staff account</span></label>
                         <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="st-can-collect" class="w-4 h-4 rounded text-green-600" checked><span class="text-sm font-medium text-gray-600">10. Collection panel access</span></label>
                         <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="st-can-manage-results" class="w-4 h-4 rounded text-indigo-600"><span class="text-sm font-medium text-gray-600">11. Result management access</span></label>
+                        <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="st-show-public" class="w-4 h-4 rounded text-emerald-600" checked><span class="text-sm font-medium text-gray-600">12. Show on public page</span></label>
                     </div>
                     <div class="text-right border-t pt-4"><button id="add-staff-btn" class="btn-primary font-bold py-2.5 px-6 rounded-lg shadow-md w-full sm:w-auto"><i class="fas fa-plus mr-2"></i> Add Staff</button></div>
                 </div>
+                <div class="card p-4 rounded-xl shadow-sm mb-6 bg-slate-50 border border-slate-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input type="text" id="staff-filter-search" class="p-2.5 border rounded-lg" placeholder="Filter by name, role, phone or email...">
+                        <select id="staff-filter-type" class="p-2.5 border rounded-lg"><option value="all">All Types</option></select>
+                    </div>
+                </div>
                 <div class="card p-5 rounded-xl shadow-sm mb-6"><h2 class="text-xl font-bold mb-4 text-blue-800 border-b border-blue-100 pb-2"><i class="fas fa-chalkboard-teacher mr-2"></i>Active Teachers</h2><div id="active-teachers-list" class="space-y-3"></div></div>
                 <div class="card p-5 rounded-xl shadow-sm mb-6"><h2 class="text-xl font-bold mb-4 text-purple-800 border-b border-purple-100 pb-2"><i class="fas fa-user-tie mr-2"></i>Active Management</h2><div id="active-mgmt-list" class="space-y-3"></div></div>
+                <div id="active-category-staff-list" class="space-y-6"></div>
                 <details class="bg-white border rounded-xl shadow-sm overflow-hidden mb-10">
                     <summary class="p-4 font-bold text-gray-700 cursor-pointer bg-gray-50 hover:bg-gray-100 transition outline-none"><i class="fas fa-user-slash mr-2"></i> View Inactive Staff</summary>
                     <div class="p-4 border-t bg-gray-50/50" id="inactive-staff-container"></div>
@@ -557,131 +574,6 @@
             <section id="web-gallery-page" class="page hidden"><div class="card p-5 rounded-xl shadow-sm"><h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2"><i class="fas fa-images mr-2 text-gray-500"></i> Gallery Management</h2><div class="flex flex-col sm:flex-row gap-3 mb-6"><input type="text" id="new-gal-url" class="flex-grow p-2.5 border rounded-lg shadow-sm" placeholder="Paste Image URL here"><button id="add-gal-btn" class="btn-primary font-bold px-8 py-2.5 rounded-lg shadow-md">Add</button></div><div id="web-gallery-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div></div></section>
 
             <!-- 10B. Dynamic Public Categories -->
-            <section id="web-directory-page" class="page hidden space-y-6">
-                <div class="card p-5 rounded-xl shadow-sm border border-emerald-100 bg-emerald-50/40">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 border-b border-emerald-200 pb-2">
-                        <div>
-                            <h2 class="text-xl font-bold text-emerald-900"><i class="fas fa-layer-group mr-2"></i>Add Categories</h2>
-                            <p class="text-sm text-emerald-700 mt-1">Create professional public directory categories with default profile fields.</p>
-                        </div>
-                        <span class="text-xs font-bold uppercase tracking-widest bg-white text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">Profile Defaults Enabled</span>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3">
-                        <input type="text" id="dir-cat-name" class="p-2.5 border rounded-lg" placeholder="Category Name (e.g. Student)">
-                        <input type="number" id="dir-cat-order" class="p-2.5 border rounded-lg w-full md:w-24" min="1" value="1" placeholder="Order">
-                        <label class="inline-flex items-center gap-2 text-sm font-semibold bg-white border rounded-lg px-3"><input type="checkbox" id="dir-cat-public" checked class="w-4 h-4"> Show in Public</label>
-                        <button id="dir-cat-add-btn" class="btn-primary font-bold px-6 py-2.5 rounded-lg">Add Category</button>
-                    </div>
-                    <div id="dir-categories-list" class="space-y-3 mt-4"></div>
-                </div>
-
-                <div class="card p-5 rounded-xl shadow-sm border border-indigo-100 bg-indigo-50/30">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 border-b border-indigo-100 pb-2">
-                        <h3 class="text-lg font-bold text-indigo-900"><i class="fas fa-list-alt mr-2"></i>Category Fields</h3>
-                        <p class="text-xs font-semibold text-indigo-700">Name required • Role/Photo/Phone/Address optional</p>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-6 gap-2">
-                        <select id="dir-field-category" class="p-2.5 border rounded-lg md:col-span-2"></select>
-                        <input type="text" id="dir-field-label" class="p-2.5 border rounded-lg" placeholder="Field Label">
-                        <select id="dir-field-type" class="p-2.5 border rounded-lg"><option value="text">Text</option><option value="number">Number</option><option value="email">Email</option><option value="phone">Phone</option><option value="date">Date</option><option value="textarea">Textarea</option></select>
-                        <input type="number" id="dir-field-order" class="p-2.5 border rounded-lg" min="1" value="1" placeholder="Order">
-                        <button id="dir-field-add-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-lg">Add Field</button>
-                    </div>
-                    <label class="inline-flex items-center gap-2 text-sm font-semibold mt-3"><input type="checkbox" id="dir-field-required" class="w-4 h-4"> Required</label>
-                    <div id="dir-fields-list" class="space-y-2 mt-3"></div>
-                </div>
-
-                <div class="card p-5 rounded-xl shadow-sm border border-violet-100 bg-violet-50/30">
-                    <h3 class="text-lg font-bold mb-3 text-violet-900"><i class="fas fa-user-lock mr-2"></i>Category Login Setup</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">Category</label>
-                            <select id="dir-auth-category" class="w-full p-2.5 border rounded-lg"></select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">Target Page</label>
-                            <select id="dir-auth-target-page" class="w-full p-2.5 border rounded-lg">
-                                <option value="collection">Collection Page</option>
-                                <option value="student">Student Page</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">Login Mode</label>
-                            <select id="dir-auth-mode" class="w-full p-2.5 border rounded-lg">
-                                <option value="manual">New Username + Password</option>
-                                <option value="mapped">Use Existing Fields</option>
-                            </select>
-                        </div>
-                        <div class="flex items-end">
-                            <label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-auth-enabled" class="w-4 h-4"> Enable Login for Category</label>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">Username Field</label>
-                            <select id="dir-auth-username-field" class="w-full p-2.5 border rounded-lg"></select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">Password Field</label>
-                            <select id="dir-auth-password-field" class="w-full p-2.5 border rounded-lg"></select>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <button id="dir-auth-save-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg">Save Login Setup</button>
-                    </div>
-                </div>
-
-                <div class="card p-5 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="text-lg font-bold mb-3 text-slate-800"><i class="fas fa-shield-alt mr-2"></i>Page Access</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">Category</label>
-                            <select id="dir-access-category" class="w-full p-2.5 border rounded-lg"></select>
-                        </div>
-                        <label class="inline-flex items-center gap-2 text-sm font-semibold md:items-end"><input type="checkbox" id="dir-access-collection" class="w-4 h-4"> Collection Page Access</label>
-                        <label class="inline-flex items-center gap-2 text-sm font-semibold md:items-end"><input type="checkbox" id="dir-access-student" class="w-4 h-4"> Student Page Access</label>
-                    </div>
-                    <div class="mt-3">
-                        <button id="dir-access-save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg">Save Category Access</button>
-                    </div>
-
-                    <div class="border-t mt-5 pt-4">
-                        <h4 class="font-bold mb-2">Individual Override</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <select id="dir-override-category" class="p-2.5 border rounded-lg"></select>
-                            <select id="dir-override-entry" class="p-2.5 border rounded-lg md:col-span-2"></select>
-                            <label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-override-blocked" class="w-4 h-4"> Block Login</label>
-                            <label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-override-collection" class="w-4 h-4"> Collection Access</label>
-                            <label class="inline-flex items-center gap-2 text-sm font-semibold"><input type="checkbox" id="dir-override-student" class="w-4 h-4"> Student Access</label>
-                        </div>
-                        <div class="mt-3 flex gap-2">
-                            <button id="dir-override-save-btn" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-2 rounded-lg">Save Override</button>
-                            <button id="dir-override-clear-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2 rounded-lg">Clear Override</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="web-directory-entries-page" class="page hidden space-y-6">
-                <div class="card p-5 rounded-xl shadow-sm border border-cyan-100 bg-cyan-50/30">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 border-b border-cyan-200 pb-2">
-                        <div>
-                            <h2 class="text-xl font-bold text-cyan-900"><i class="fas fa-id-card-alt mr-2"></i>Category Entries</h2>
-                            <p class="text-sm text-cyan-700 mt-1">Add, review, edit, and remove profile cards for each category.</p>
-                        </div>
-                        <span class="text-xs font-bold uppercase tracking-widest bg-white text-cyan-700 px-3 py-1 rounded-full border border-cyan-200">Professional Card Mode</span>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
-                        <select id="dir-entry-category" class="p-2.5 border rounded-lg"></select>
-                        <button id="dir-entry-save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-lg">Save Entry</button>
-                    </div>
-                    <div class="mt-2">
-                        <label class="block text-sm font-semibold mb-1">Display Order (Public ترتيب)</label>
-                        <input type="number" id="dir-entry-order" min="1" class="w-full md:w-56 p-2.5 border rounded-lg" value="999" placeholder="1 = first">
-                    </div>
-                    <div id="dir-entry-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"></div>
-                    <div id="dir-entries-list" class="space-y-2 mt-4"></div>
-                </div>
-            </section>
-
             <!-- 11. Security Settings -->
             <section id="security-settings-page" class="page hidden space-y-6">
                 <div class="card p-5 rounded-xl shadow-sm bg-red-50/30 border-red-100">
@@ -803,7 +695,7 @@
         <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-2xl mx-auto bg-white max-h-[90vh] overflow-y-auto relative">
             <h3 class="text-xl font-bold mb-4 text-gray-900 border-b pb-2">Edit Staff Details</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="md:col-span-1"><label class="block text-sm font-semibold mb-1">1. Type</label><select id="e-st-type" class="w-full p-2.5 border rounded-lg bg-gray-50"><option value="Teacher">Teacher</option><option value="Management">Management</option></select></div>
+                <div class="md:col-span-1"><label class="block text-sm font-semibold mb-1">1. Type</label><select id="e-st-type" class="w-full p-2.5 border rounded-lg bg-gray-50"></select></div>
                 <div class="md:col-span-2"><label class="block text-sm font-semibold mb-1">2. Full Name</label><input type="text" id="e-st-name" class="w-full p-2.5 border rounded-lg bg-gray-50"></div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -824,6 +716,7 @@
                 <label class="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" id="e-st-active" class="w-4 h-4 rounded text-blue-600"> Active</label>
                 <label class="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" id="e-st-can-collect" class="w-4 h-4 rounded text-green-600"> Collection panel access</label>
                 <label class="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" id="e-st-can-manage-results" class="w-4 h-4 rounded text-indigo-600"> Result management access</label>
+                <label class="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" id="e-st-show-public" class="w-4 h-4 rounded text-emerald-600"> Show on public page</label>
             </div>
             <div class="flex justify-end gap-3 pt-4 border-t mt-4">
                 <button id="edit-staff-cancel" class="px-5 py-2.5 bg-gray-200 font-bold rounded-lg hover:bg-gray-300">Cancel</button>

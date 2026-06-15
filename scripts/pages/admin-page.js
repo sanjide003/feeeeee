@@ -1008,6 +1008,7 @@ overlay?.addEventListener('click', () => toggleDrawer(false));
 
 const activateAdminPage = (targetId, options = {}) => {
     const { suppressDeniedAlert = false, pushHistory = true } = options;
+    if (targetId === 'web-directory' || targetId === 'web-directory-entries') targetId = 'manage-staff';
     const setupReady = enforceSetupGate();
     if (!setupReady && !['dashboard', 'academic-years', 'manage-classes'].includes(targetId)) {
         if (!suppressDeniedAlert) alert('Complete Academic Year and Class setup first.');
@@ -1031,7 +1032,7 @@ const activateAdminPage = (targetId, options = {}) => {
     if(targetId === 'manage-classes') { populateClassDropdowns(); renderClassList(); }
     if(targetId === 'manage-groups') renderStudentGroups();
     if(targetId === 'results') renderResultManagement();
-    if(targetId === 'manage-staff') renderStaffList();
+    if(targetId === 'manage-staff') { renderDirectoryCategories(); renderStaffList(); }
     if(targetId === 'fee-settings') renderFeeItemsManagement();
     if(targetId === 'fee-concessions') { populateClassDropdowns(); renderConcessionsList(); }
     if(targetId === 'web-directory') { renderDirectoryCategories(); }
@@ -1089,6 +1090,32 @@ if (window.location.hash === '#results') {
 }
 
 // --- 1. STAFF MANAGEMENT ---
+const CORE_STAFF_TYPES = ['Teacher', 'Management'];
+const getStaffTypeLabel = (type = '') => {
+    if (CORE_STAFF_TYPES.includes(type)) return type;
+    return getDirectoryCategories().find((category) => category.id === type)?.name || type || 'Staff';
+};
+const getStaffTypeOptions = () => [
+    ...CORE_STAFF_TYPES.map((type) => ({ value: type, label: type })),
+    ...getDirectoryCategories().map((category) => ({ value: category.id, label: category.name }))
+];
+const renderStaffTypeControls = () => {
+    const options = getStaffTypeOptions();
+    ['st-type', 'e-st-type'].forEach((id) => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        const previous = select.value;
+        select.innerHTML = options.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('');
+        if (options.some((option) => option.value === previous)) select.value = previous;
+    });
+    const filter = document.getElementById('staff-filter-type');
+    if (filter) {
+        const previous = filter.value || 'all';
+        filter.innerHTML = '<option value="all">All Types</option>' + options.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('');
+        filter.value = options.some((option) => option.value === previous) ? previous : 'all';
+    }
+};
+
 document.getElementById('add-staff-btn').addEventListener('click', async () => {
     if(!requirePermission('staff.manage')) return;
     const type = document.getElementById('st-type').value, name = document.getElementById('st-name').value.trim(), role = document.getElementById('st-role').value.trim();
@@ -1104,6 +1131,7 @@ document.getElementById('add-staff-btn').addEventListener('click', async () => {
         password: document.getElementById('st-password').value.trim(),
         msr: document.getElementById('st-msr').value.trim(), address: document.getElementById('st-address').value.trim(),
         photo: document.getElementById('st-photo').value.trim(), isActive: document.getElementById('st-active').checked, canCollect: document.getElementById('st-can-collect').checked, canManageResults: document.getElementById('st-can-manage-results').checked,
+        showPublic: document.getElementById('st-show-public').checked,
         displayOrder: Math.max(1, Number(document.getElementById('st-display-order').value || 999))
     };
     const staffDoc = await addDoc(collection(db, `${BASE_PATH}/staff`), staffRecord);
@@ -1115,12 +1143,26 @@ document.getElementById('add-staff-btn').addEventListener('click', async () => {
     document.getElementById('st-active').checked = true;
     document.getElementById('st-can-collect').checked = true;
     document.getElementById('st-can-manage-results').checked = false;
+    document.getElementById('st-show-public').checked = true;
     btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus mr-2"></i> Add Staff';
 });
 
 const renderStaffList = () => {
-    const actTCont = document.getElementById('active-teachers-list'), actMCont = document.getElementById('active-mgmt-list'), inactCont = document.getElementById('inactive-staff-container');
-    const active = allStaff.filter(s => s.isActive), inactive = allStaff.filter(s => !s.isActive);
+    renderStaffTypeControls();
+    const actTCont = document.getElementById('active-teachers-list');
+    const actMCont = document.getElementById('active-mgmt-list');
+    const categoryCont = document.getElementById('active-category-staff-list');
+    const inactCont = document.getElementById('inactive-staff-container');
+    const typeFilter = document.getElementById('staff-filter-type')?.value || 'all';
+    const searchTerm = String(document.getElementById('staff-filter-search')?.value || '').trim().toLowerCase();
+    const matchesFilters = (staffMember) => {
+        if (typeFilter !== 'all' && staffMember.type !== typeFilter) return false;
+        if (!searchTerm) return true;
+        const haystack = `${staffMember.name || ''} ${staffMember.role || ''} ${staffMember.phone || ''} ${staffMember.email || ''} ${getStaffTypeLabel(staffMember.type)}`.toLowerCase();
+        return haystack.includes(searchTerm);
+    };
+    const active = allStaff.filter((s) => s.isActive && matchesFilters(s));
+    const inactive = allStaff.filter((s) => !s.isActive && matchesFilters(s));
     const sortByDisplayOrder = (list = []) => [...list].sort((a, b) => {
         const orderDiff = Number(a?.displayOrder || 999) - Number(b?.displayOrder || 999);
         if (orderDiff !== 0) return orderDiff;
@@ -1128,15 +1170,17 @@ const renderStaffList = () => {
     });
     const buildHTML = (list, isAct) => list.map((staffMember) => {
         const safePhoto = sanitizeUrl(staffMember.photo) || 'https://via.placeholder.com/60';
+        const typeLabel = getStaffTypeLabel(staffMember.type);
         return `
             <div class="flex flex-col sm:flex-row justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm items-start sm:items-center gap-4 transition hover:shadow-md mb-2">
                 <div class="flex gap-4 items-center w-full sm:w-auto">
-                    <img src="${safePhoto}" class="w-14 h-14 rounded-full object-cover border-2 ${staffMember.type === 'Teacher' ? 'border-blue-200' : 'border-purple-200'}" alt="${escapeHtml(staffMember.name || 'Staff member')}">
+                    <img src="${safePhoto}" class="w-14 h-14 rounded-full object-cover border-2 ${staffMember.type === 'Teacher' ? 'border-blue-200' : staffMember.type === 'Management' ? 'border-purple-200' : 'border-emerald-200'}" alt="${escapeHtml(staffMember.name || 'Staff member')}">
                     <div>
                         <b class="text-gray-900 text-lg">${escapeHtml(staffMember.name || '--')}</b>
                         <div class="text-sm text-gray-500 font-medium mt-0.5"><i class="fas fa-briefcase text-gray-400 mr-1"></i> ${escapeHtml(staffMember.role || '--')}</div>
+                        <div class="text-[11px] text-slate-600 bg-slate-50 px-2 py-0.5 rounded mt-1 inline-block font-bold">${escapeHtml(typeLabel)}</div>
                         ${staffMember.email ? `<div class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded mt-1 inline-block font-mono">Email: ${escapeHtml(staffMember.email)}</div>` : ''}
-                        <div class="mt-2 flex flex-wrap gap-2">${staffMember.isActive ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>' : '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">Inactive</span>'}${staffMember.canCollect ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Collection Access</span>' : '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">No Collection Access</span>'}${staffMember.canManageResults ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Result Access</span>' : ''}</div>
+                        <div class="mt-2 flex flex-wrap gap-2">${staffMember.isActive ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>' : '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">Inactive</span>'}${staffMember.showPublic !== false ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">Public</span>' : '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">Hidden Public</span>'}${staffMember.canCollect ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Collection Access</span>' : '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">No Collection Access</span>'}${staffMember.canManageResults ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Result Access</span>' : ''}</div>
                     </div>
                 </div>
                 <div class="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
@@ -1147,16 +1191,20 @@ const renderStaffList = () => {
                 </div>
             </div>`;
     }).join('');
-    const activeTeachers = sortByDisplayOrder(active.filter(s=>s.type==='Teacher'));
-    const activeManagement = sortByDisplayOrder(active.filter(s=>s.type==='Management'));
+    const activeTeachers = sortByDisplayOrder(active.filter((s) => s.type === 'Teacher'));
+    const activeManagement = sortByDisplayOrder(active.filter((s) => s.type === 'Management'));
     actTCont.innerHTML = activeTeachers.length ? buildHTML(activeTeachers, true) : '<p class="text-sm text-gray-500 italic p-2">No active teachers found.</p>';
     actMCont.innerHTML = activeManagement.length ? buildHTML(activeManagement, true) : '<p class="text-sm text-gray-500 italic p-2">No active management found.</p>';
-    const inactT = sortByDisplayOrder(inactive.filter(s=>s.type==='Teacher')), inactM = sortByDisplayOrder(inactive.filter(s=>s.type==='Management'));
-    inactCont.innerHTML = `
-        <h4 class="font-bold text-gray-700 mb-2 border-b pb-1">Inactive Teachers</h4>
-        <div class="mb-4">${inactT.length ? buildHTML(inactT, false) : '<p class="text-sm text-gray-500 italic">No inactive teachers.</p>'}</div>
-        <h4 class="font-bold text-gray-700 mb-2 border-b pb-1">Inactive Management</h4>
-        <div>${inactM.length ? buildHTML(inactM, false) : '<p class="text-sm text-gray-500 italic">No inactive management.</p>'}</div>`;
+    const categorySections = getDirectoryCategories().map((category) => {
+        const rows = sortByDisplayOrder(active.filter((s) => s.type === category.id));
+        return `<div class="card p-5 rounded-xl shadow-sm border border-emerald-100"><h2 class="text-xl font-bold mb-4 text-emerald-800 border-b border-emerald-100 pb-2"><i class="fas fa-users mr-2"></i>${escapeHtml(category.name)}</h2>${rows.length ? buildHTML(rows, true) : '<p class="text-sm text-gray-500 italic p-2">No active profiles in this category.</p>'}</div>`;
+    }).join('');
+    if (categoryCont) categoryCont.innerHTML = categorySections;
+    const inactiveSections = getStaffTypeOptions().map((option) => {
+        const rows = sortByDisplayOrder(inactive.filter((s) => s.type === option.value));
+        return `<h4 class="font-bold text-gray-700 mb-2 border-b pb-1">Inactive ${escapeHtml(option.label)}</h4><div class="mb-4">${rows.length ? buildHTML(rows, false) : '<p class="text-sm text-gray-500 italic">No inactive profiles.</p>'}</div>`;
+    }).join('');
+    inactCont.innerHTML = inactiveSections;
 };
 
 window.toggleStaffStatus = async (id, status) => {
@@ -1180,6 +1228,7 @@ window.openEditStaff = (id) => {
     if(!requirePermission('staff.manage')) return;
     const s = allStaff.find(st => st.id === id); if(!s) return;
     editingStaffId = s.id;
+    renderStaffTypeControls();
     document.getElementById('e-st-type').value = s.type||'Teacher'; document.getElementById('e-st-name').value = s.name||'';
     document.getElementById('e-st-role').value = s.role||''; document.getElementById('e-st-phone').value = s.phone||'';
     document.getElementById('e-st-email').value = s.email||''; document.getElementById('e-st-password').value = s.password||'';
@@ -1189,6 +1238,7 @@ window.openEditStaff = (id) => {
     document.getElementById('e-st-active').checked = s.isActive;
     document.getElementById('e-st-can-collect').checked = s.canCollect !== false;
     document.getElementById('e-st-can-manage-results').checked = s.canManageResults === true;
+    document.getElementById('e-st-show-public').checked = s.showPublic !== false;
     document.getElementById('edit-staff-popup').classList.remove('hidden'); document.getElementById('edit-staff-popup').classList.add('flex');
 };
 document.getElementById('manage-staff-page').addEventListener('click', (e) => {
@@ -1200,6 +1250,8 @@ document.getElementById('manage-staff-page').addEventListener('click', (e) => {
     if (action === 'toggle') window.toggleStaffStatus(id, nextState === 'true');
     if (action === 'delete') window.deleteStaff(id);
 });
+document.getElementById('staff-filter-search')?.addEventListener('input', renderStaffList);
+document.getElementById('staff-filter-type')?.addEventListener('change', renderStaffList);
 document.getElementById('edit-staff-cancel').onclick = () => document.getElementById('edit-staff-popup').classList.add('hidden');
 document.getElementById('edit-staff-update').onclick = async () => {
     if(!requirePermission('staff.manage')) return;
@@ -1215,6 +1267,7 @@ document.getElementById('edit-staff-update').onclick = async () => {
         password: document.getElementById('e-st-password').value.trim(),
         msr: document.getElementById('e-st-msr').value.trim(), photo: document.getElementById('e-st-photo').value.trim(),
         address: document.getElementById('e-st-addr').value.trim(), isActive: document.getElementById('e-st-active').checked, canCollect: document.getElementById('e-st-can-collect').checked, canManageResults: document.getElementById('e-st-can-manage-results').checked,
+        showPublic: document.getElementById('e-st-show-public').checked,
         displayOrder: Math.max(1, Number(document.getElementById('e-st-display-order').value || 999))
     };
     await updateDoc(doc(db, `${BASE_PATH}/staff`, editingStaffId), nextStaffRecord);
@@ -3417,17 +3470,22 @@ const renderDirectoryAuthConfig = () => {
     if (usernameFieldSel) usernameFieldSel.innerHTML = `<option value="">-- Select Username Field --</option>${fieldOptions}`;
     if (passwordFieldSel) passwordFieldSel.innerHTML = `<option value="">-- Select Password Field --</option>${fieldOptions}`;
     const authConfig = getCategoryAuthItem(categoryId);
-    document.getElementById('dir-auth-enabled').checked = authConfig.enabled;
-    document.getElementById('dir-auth-mode').value = authConfig.mode;
-    document.getElementById('dir-auth-target-page').value = authConfig.targetPage;
+    const enabledEl = document.getElementById('dir-auth-enabled');
+    const modeEl = document.getElementById('dir-auth-mode');
+    const targetPageEl = document.getElementById('dir-auth-target-page');
+    if (enabledEl) enabledEl.checked = authConfig.enabled;
+    if (modeEl) modeEl.value = authConfig.mode;
+    if (targetPageEl) targetPageEl.value = authConfig.targetPage;
     if (usernameFieldSel) usernameFieldSel.value = authConfig.usernameField;
     if (passwordFieldSel) passwordFieldSel.value = authConfig.passwordField;
 };
 const renderDirectoryAccessConfig = () => {
     const categoryId = document.getElementById('dir-access-category')?.value || '';
     const access = getPageAccessCategoryItem(categoryId);
-    document.getElementById('dir-access-collection').checked = access.collection;
-    document.getElementById('dir-access-student').checked = access.student;
+    const collectionEl = document.getElementById('dir-access-collection');
+    const studentEl = document.getElementById('dir-access-student');
+    if (collectionEl) collectionEl.checked = access.collection;
+    if (studentEl) studentEl.checked = access.student;
 };
 const renderOverrideEntryOptions = () => {
     const categoryId = document.getElementById('dir-override-category')?.value || '';
@@ -3565,6 +3623,8 @@ const renderDirectoryCategories = () => {
     renderDirectoryAuthConfig();
     renderDirectoryAccessConfig();
     renderOverrideEntryOptions();
+    renderStaffTypeControls();
+    if(!document.getElementById('manage-staff-page')?.classList.contains('hidden')) renderStaffList();
 };
 const updateDirectoryCategories = async (categories = []) => {
     webContent.directoryCategories = categories.map(normalizeDirectoryCategory);
@@ -3603,7 +3663,11 @@ document.getElementById('dir-categories-list')?.addEventListener('click', async 
         const next = categories.filter((item) => item.id !== targetId);
         await updateDirectoryCategories(next);
         const deleteTargets = publicDirectoryEntries.filter((entry) => entry.categoryId === targetId);
-        await Promise.all(deleteTargets.map((entry) => deleteDoc(doc(db, `${BASE_PATH}/publicDirectory`, entry.id))));
+        const reassignedStaff = allStaff.filter((staffMember) => staffMember.type === targetId);
+        await Promise.all([
+            ...deleteTargets.map((entry) => deleteDoc(doc(db, `${BASE_PATH}/publicDirectory`, entry.id))),
+            ...reassignedStaff.map((staffMember) => updateDoc(doc(db, `${BASE_PATH}/staff`, staffMember.id), { type: 'Management' }))
+        ]);
     }
 });
 document.getElementById('dir-field-category')?.addEventListener('change', () => { renderDirectoryFields(); });
