@@ -761,6 +761,63 @@ const exportMonthlySummaryCsv = (searchTerm = '') => {
 };
 
 // --- DASHBOARD RENDER ---
+const renderDashboardStudentClassTable = () => {
+    const tableHost = document.getElementById('dash-students-class-table');
+    if (!tableHost) return;
+
+    const classNames = [...new Set([
+        ...classes,
+        ...students.map((student) => student.class).filter(Boolean)
+    ])].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
+
+    const rows = classNames.map((className) => {
+        const classStudents = students.filter((student) => student.class === className);
+        const boys = classStudents.filter((student) => String(student.gender || '').toLowerCase().startsWith('male')).length;
+        const girls = classStudents.filter((student) => String(student.gender || '').toLowerCase().startsWith('female')).length;
+        return { className, boys, girls, total: classStudents.length };
+    }).filter((row) => row.total > 0);
+
+    const totals = rows.reduce((acc, row) => ({
+        boys: acc.boys + row.boys,
+        girls: acc.girls + row.girls,
+        total: acc.total + row.total
+    }), { boys: 0, girls: 0, total: 0 });
+
+    if (!rows.length) {
+        tableHost.innerHTML = '<div class="p-4 text-center text-xs font-semibold text-gray-400">No student data available.</div>';
+        return;
+    }
+
+    tableHost.innerHTML = `
+        <table class="w-full text-xs sm:text-sm text-left">
+            <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[10px] sm:text-xs">
+                <tr>
+                    <th class="px-4 py-2 font-bold">Class</th>
+                    <th class="px-4 py-2 font-bold text-right">Boys</th>
+                    <th class="px-4 py-2 font-bold text-right">Girls</th>
+                    <th class="px-4 py-2 font-bold text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map((row) => `
+                    <tr class="border-t border-gray-100 hover:bg-indigo-50/30">
+                        <td class="px-4 py-2 font-semibold text-gray-800">${escapeHtml(row.className)}</td>
+                        <td class="px-4 py-2 text-right text-blue-700 font-bold">${row.boys}</td>
+                        <td class="px-4 py-2 text-right text-pink-700 font-bold">${row.girls}</td>
+                        <td class="px-4 py-2 text-right text-gray-900 font-extrabold">${row.total}</td>
+                    </tr>`).join('')}
+            </tbody>
+            <tfoot class="bg-indigo-50 border-t border-indigo-100">
+                <tr>
+                    <td class="px-4 py-2 font-extrabold text-indigo-900">Total</td>
+                    <td class="px-4 py-2 text-right font-extrabold text-indigo-900">${totals.boys}</td>
+                    <td class="px-4 py-2 text-right font-extrabold text-indigo-900">${totals.girls}</td>
+                    <td class="px-4 py-2 text-right font-extrabold text-indigo-900">${totals.total}</td>
+                </tr>
+            </tfoot>
+        </table>`;
+};
+
 const updateDashboardMetrics = () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const currentMonthStr = todayStr.substring(0, 7);
@@ -784,6 +841,7 @@ const updateDashboardMetrics = () => {
     document.getElementById('dash-month-amt').textContent = monthTotal.toFixed(0);
     document.getElementById('dash-today-receipts').textContent = todayReceipts.size;
     document.getElementById('dash-students-count').textContent = students.length;
+    renderDashboardStudentClassTable();
 };
 
 const getAvailableFeeYearsForStudent = (student) => {
@@ -2267,17 +2325,6 @@ const renderConcessionGroupOverview = () => {
             <div><div class="font-bold mb-2 text-gray-800">Group List</div><div class="space-y-3">${groupRows.join('') || `<div class="text-sm text-gray-500">${emptyGroupLabel}</div>`}</div></div>
         </div>`;
 };
-document.getElementById('conc-group-download-pdf-btn')?.addEventListener('click', () => {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-    const text = document.getElementById('conc-group-content')?.innerText || 'No data';
-    pdf.setFontSize(14);
-    pdf.text('Concession & Group Overview', 14, 16);
-    pdf.setFontSize(10);
-    pdf.text(text.split('\n').slice(0, 220), 14, 24);
-    pdf.save('concession-group-overview.pdf');
-});
-
 // --- HISTORY RENDER ---
 const updateHistoryStaffFilter = () => {
     const filterEl = document.getElementById('history-staff-filter');
@@ -2580,7 +2627,7 @@ const renderMonthlyCollectedPage = (searchTerm = '') => {
             if (!uTxns[tid]) {
                 const pt = monthPays.filter(pay => (pay.transactionId || pay.receiptNo) === tid);
                 const m = sumReportPaymentsOnce(pt, (pay) => getPaymentItemType(pay) === 'month');
-                const c = sumReportPaymentsOnce(pt, (pay) => getPaymentItemType(pay) !== 'month');
+                const c = sumReportPaymentsOnce(pt, (pay) => getPaymentItemType(pay) === 'custom');
                 uTxns[tid] = { m, c };
             }
         });
@@ -2594,7 +2641,7 @@ const renderMonthlyCollectedPage = (searchTerm = '') => {
         const defaultTotal = roundMoney(mTot);
         const donationTotal = roundMoney(donationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
             + studentDonationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
-        const otherTotal = roundMoney(cTot - studentDonationPays.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
+        const otherTotal = roundMoney(cTot);
         const grandTotal = roundMoney(defaultTotal + donationTotal + otherTotal);
 
         let html = `<div class="bg-gray-50 border p-4 rounded-xl"><div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 cursor-pointer month-header"><div><h3 class="text-base font-bold">${formatMonthLabel(mk)}</h3><p class="text-xs text-gray-500 font-medium mt-1">${Object.keys(uTxns).length} receipt groups • ${new Set(monthPays.map((payment) => payment.studentId)).size} students</p></div><div class="flex flex-wrap items-center gap-2 text-[11px] font-bold"><span class="bg-white px-2 py-1 rounded border">Default: ${formatCurrency(defaultTotal)}</span><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200">Donation: ${formatCurrency(donationTotal)}</span><span class="bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200">Other: ${formatCurrency(otherTotal)}</span><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200">Total: ${formatCurrency(grandTotal)}</span><i class="fas fa-chevron-down month-toggle-icon text-gray-400 ${mk === currentMK ? 'rotate-180' : ''} transition ml-1"></i></div></div><div class="month-details-container overflow-x-auto mt-4 pt-4 border-t ${mk === currentMK ? '' : 'hidden'}">`;

@@ -69,8 +69,10 @@ service cloud.firestore {
       return request.resource.data.studentId is string
         && request.resource.data.amount is number
         && request.resource.data.amount >= 0
-        && request.resource.data.paymentDate is timestamp
-        && request.resource.data.updatedAt is timestamp;
+        // Collection UI stores dates as YYYY-MM-DD strings for reports.
+        && request.resource.data.paymentDate is string
+        && (!('timestamp' in request.resource.data) || request.resource.data.timestamp is number)
+        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
     }
 
     function hasResultStaffAccess(institutionId) {
@@ -131,7 +133,8 @@ service cloud.firestore {
 
     match /institutions/{institutionId}/payments/{docId} {
       allow read: if isAdmin(institutionId) || isCollectionSession();
-      allow write: if isAdmin(institutionId) || (isCollectionSession() && validPaymentWrite());
+      allow create, update: if isAdmin(institutionId) || (isCollectionSession() && validPaymentWrite());
+      allow delete: if isAdmin(institutionId) || isCollectionSession();
     }
 
     match /institutions/{institutionId}/donations/{docId} {
@@ -191,7 +194,8 @@ service cloud.firestore {
 
     match /institutions/{institutionId}/academicYears/{yearId}/payments/{docId} {
       allow read: if isAdmin(institutionId) || isCollectionSession();
-      allow write: if isAdmin(institutionId) || (isCollectionSession() && validPaymentWrite());
+      allow create, update: if isAdmin(institutionId) || (isCollectionSession() && validPaymentWrite());
+      allow delete: if isAdmin(institutionId) || isCollectionSession();
     }
 
     match /institutions/{institutionId}/academicYears/{yearId}/results/{docId} {

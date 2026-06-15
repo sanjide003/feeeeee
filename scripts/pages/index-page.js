@@ -265,6 +265,7 @@ import { BASE_PATH, applyInstitutionBranding, escapeHtml, hardenExternalLinks, n
         let allStudents = [], selectedLoginStudent = null;
         let directoryCategories = [];
         let directoryEntries = [];
+        let staffDirectoryEntries = [];
         let categoryAuthConfig = { categories: {} };
         let pageAccessConfig = { categories: {}, overrides: {} };
         const normalizeCategoryAuthItem = (raw = {}) => ({
@@ -408,7 +409,8 @@ import { BASE_PATH, applyInstitutionBranding, escapeHtml, hardenExternalLinks, n
             }
             sectionsEl.innerHTML = visibleCategories.map((category) => {
                 const fields = (Array.isArray(category.fields) ? category.fields : []).sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0));
-                const rows = directoryEntries
+                const combinedDirectoryEntries = [...directoryEntries, ...staffDirectoryEntries];
+                const rows = combinedDirectoryEntries
                     .filter((entry) => entry.categoryId === category.id)
                     .sort((a, b) => {
                         const orderDiff = Number(a?.displayOrder || 999) - Number(b?.displayOrder || 999);
@@ -627,13 +629,30 @@ import { BASE_PATH, applyInstitutionBranding, escapeHtml, hardenExternalLinks, n
                     onSnapshot(collection(db, `${BASE_PATH}/staff`), snap => {
                         const allStaff = snap.docs.map(d => ({id: d.id, ...d.data()}));
                         const activeStaff = allStaff.filter(s => s.isActive);
+                        staffDirectoryEntries = activeStaff
+                            .filter((staffMember) => staffMember.showPublic !== false && directoryCategories.some((category) => category.id === staffMember.type && category.showPublic !== false))
+                            .map((staffMember) => ({
+                                id: `staff:${staffMember.id}`,
+                                categoryId: staffMember.type,
+                                displayOrder: staffMember.displayOrder || 999,
+                                updatedAt: staffMember.updatedAt || 0,
+                                values: {
+                                    name: staffMember.name || '',
+                                    role: staffMember.role || '',
+                                    phone: staffMember.phone || '',
+                                    photo: staffMember.photo || '',
+                                    address: staffMember.address || ''
+                                }
+                            }));
+                        renderDynamicDirectory();
                         const sortByDisplayOrder = (list = []) => [...list].sort((a, b) => {
                             const orderDiff = Number(a?.displayOrder || 999) - Number(b?.displayOrder || 999);
                             if (orderDiff !== 0) return orderDiff;
                             return String(a?.name || '').localeCompare(String(b?.name || ''));
                         });
-                        const teachers = sortByDisplayOrder(activeStaff.filter(s => s.type === 'Teacher'));
-                        const mgmt = sortByDisplayOrder(activeStaff.filter(s => s.type === 'Management'));
+                        const publicStaff = activeStaff.filter((staffMember) => staffMember.showPublic !== false);
+                        const teachers = sortByDisplayOrder(publicStaff.filter(s => s.type === 'Teacher'));
+                        const mgmt = sortByDisplayOrder(publicStaff.filter(s => s.type === 'Management'));
                         
                         const renderStaffList = (id, list, contId, linkId, btnId) => {
                             const cont = document.getElementById(contId);
