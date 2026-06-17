@@ -474,10 +474,11 @@ header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); pos
     opacity: 0;
     pointer-events: none;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-    z-index: 950;
+    z-index: 5001;
     display: flex;
     flex-direction: column;
 }
+#student-notify-backdrop:not(.pointer-events-none) { z-index: 5000; background: rgba(15,23,42,0.08); }
 .student-notify-dropdown.active { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
 .student-notify-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 14px; border-bottom:1px solid #e2e8f0; background:linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); }
 .student-notify-head h3 { display:flex; align-items:center; gap:8px; color:#0f172a; font-size:14px; font-weight:900; margin:0; }

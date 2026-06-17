@@ -513,6 +513,7 @@ window.AppSession?.guardStudentPage?.();
         document.getElementById('student-notify-list')?.addEventListener('click', (event) => {
             const button = event.target.closest('.notify-item');
             if (!button) return;
+            event.preventDefault();
             window.handleNotifyClick(button.dataset.notificationId || '', button.dataset.notificationTarget || '');
         });
         document.getElementById('student-notify-trigger')?.addEventListener('click', () => toggleNotifyPanel(true));
@@ -641,8 +642,18 @@ window.AppSession?.guardStudentPage?.();
         const renderProfilePaymentDetails = () => {
             const container = document.getElementById('student-profile-payment-details');
             if (!container) return;
-            const rows = renderPaymentDetailRows(paymentDetails, { copyable: true });
-            if (!rows) {
+            const googlePayRows = renderPaymentDetailRows({
+                accountName: paymentDetails.accountName || '',
+                upiNumber: paymentDetails.upiNumber || '',
+                upiId: paymentDetails.upiId || ''
+            }, { copyable: true });
+            const bankRows = renderPaymentDetailRows({
+                bankName: paymentDetails.bankName || '',
+                accountNumber: paymentDetails.accountNumber || '',
+                ifsc: paymentDetails.ifsc || '',
+                branch: paymentDetails.branch || ''
+            }, { copyable: true });
+            if (!googlePayRows && !bankRows) {
                 container.classList.add('hidden');
                 container.innerHTML = '';
                 return;
@@ -650,8 +661,9 @@ window.AppSession?.guardStudentPage?.();
             container.classList.remove('hidden');
             container.innerHTML = `
                 <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-left">
-                    <div class="text-sm font-extrabold text-emerald-900 mb-2"><i class="fas fa-money-check-alt mr-1"></i> Payment Details</div>
-                    <div class="text-[11px] text-gray-700 bg-white/80 border border-emerald-100 rounded-lg p-2 space-y-1">${rows}</div>
+                    <div class="text-sm font-extrabold text-emerald-900 mb-3"><i class="fas fa-money-check-alt mr-1"></i> Payment Details</div>
+                    ${googlePayRows ? `<div class="mb-3"><div class="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Google Pay / UPI</div><div class="text-[11px] text-gray-700 bg-white/80 border border-emerald-100 rounded-lg p-2 space-y-1">${googlePayRows}</div></div>` : ''}
+                    ${bankRows ? `<div><div class="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Bank Account</div><div class="text-[11px] text-gray-700 bg-white/80 border border-emerald-100 rounded-lg p-2 space-y-1">${bankRows}</div></div>` : ''}
                 </div>
             `;
         };
@@ -1074,8 +1086,8 @@ window.AppSession?.guardStudentPage?.();
             const examSelect = document.getElementById('results-exam-select');
             const examOptions = [...new Set(filteredResults.map((result) => getStudentResultExamKey(result)))].filter(Boolean);
             if (examSelect) {
-                const defaultExam = resultCenterSettings.publishExamKey || examOptions[0] || '';
-                const prev = examSelect.value || defaultExam;
+                const defaultExam = '';
+                const prev = examOptions.includes(examSelect.value) ? examSelect.value : defaultExam;
                 examSelect.innerHTML = `<option value="">All Exams</option>${examOptions.map((exam) => {
                     const rawLabel = getStudentResultExamLabel(filteredResults.find((row) => getStudentResultExamKey(row) === exam) || { examKey: exam });
                     const label = stringifyResultLabel(rawLabel, examLabels[exam] || exam);
@@ -1083,7 +1095,7 @@ window.AppSession?.guardStudentPage?.();
                 }).join('')}`;
                 examSelect.value = prev;
             }
-            const selectedExam = examSelect?.value || resultCenterSettings.publishExamKey || '';
+            const selectedExam = examSelect?.value || '';
             const examScopedResults = selectedExam ? filteredResults.filter((result) => getStudentResultExamKey(result) === selectedExam) : filteredResults;
             
             const publishTs = resultCenterSettings.publishAt ? new Date(resultCenterSettings.publishAt).getTime() : 0;
