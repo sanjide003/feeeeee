@@ -852,9 +852,11 @@ window.AppSession?.guardStudentPage?.();
             const yearsFromPayments = payments.map((item) => item.academicYear).filter(Boolean);
             const yearsFromResults = results.map((item) => item.academicYear).filter(Boolean);
             const paidYears = new Set(yearsFromPayments);
-            const allYears = getSortedAcademicYears([profile?.academicYear, ...yearsFromFeeItems, ...yearsFromPayments, ...yearsFromResults]);
+            const settingsYears = academicYearSettings.map((item) => typeof item === 'string' ? item : item?.year).filter(Boolean);
+            const allYears = getSortedAcademicYears([currentAcademicYear, profile?.academicYear, ...settingsYears, ...yearsFromFeeItems, ...yearsFromPayments, ...yearsFromResults]);
             const filtered = allYears.filter((year) => {
                 const status = getAcademicYearStatus(year);
+                if (year === currentAcademicYear) return true;
                 if (status === 'archived') return false;
                 if (status === 'planning') return paidYears.has(year);
                 return isYearVisibleInStudent(year);
@@ -1524,6 +1526,13 @@ window.AppSession?.guardStudentPage?.();
                         branch: conf.paymentBranch || ''
                     };
                     renderProfilePaymentDetails();
+                    if (studentProfile) {
+                        availableAcademicYears = buildAvailableAcademicYears(studentProfile, allPayments, studentResultsCache);
+                        if (!selectedFeeAcademicYear || !availableAcademicYears.includes(selectedFeeAcademicYear)) selectedFeeAcademicYear = currentAcademicYear && availableAcademicYears.includes(currentAcademicYear) ? currentAcademicYear : availableAcademicYears[0];
+                        if (!selectedResultAcademicYear || !availableAcademicYears.includes(selectedResultAcademicYear)) selectedResultAcademicYear = selectedFeeAcademicYear;
+                        renderStudentFeeDetails(studentProfile, selectedFeeAcademicYear);
+                        renderStudentResults(studentProfile, studentResultsCache, selectedResultAcademicYear);
+                    }
                 });
 
                 onSnapshot(doc(db, `${BASE_PATH}/settings`, 'sessionControl'), (sessionSnap) => {
@@ -1556,30 +1565,59 @@ window.AppSession?.guardStudentPage?.();
                     }
                 });
 
-                const grpSnap = await getDocs(collection(db, `${BASE_PATH}/studentGroups`));
-                studentGroups = grpSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                try {
+                    const academicYearDoc = await getDoc(doc(db, `${BASE_PATH}/settings`, 'academicYears'));
+                    const academicData = academicYearDoc.exists() ? academicYearDoc.data() : {};
+                    academicYearSettings = Array.isArray(academicData.years) ? academicData.years : academicYearSettings;
+                    currentAcademicYear = academicData.currentYear || currentAcademicYear || '';
+                } catch (yearError) {
+                    console.warn('Unable to load academic year settings for student dashboard.', yearError);
+                }
+
+                try {
+                    const grpSnap = await getDocs(collection(db, `${BASE_PATH}/studentGroups`));
+                    studentGroups = grpSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                } catch (groupError) {
+                    console.warn('Unable to load student groups for student dashboard.', groupError);
+                    studentGroups = [];
+                }
 
                 const stuSnap = await getDoc(doc(db, `${BASE_PATH}/students`, studentId));
                 if (!stuSnap.exists()) { alert("Student profile not found."); logoutStudent(); return; }
                 const st = stuSnap.data();
                 const activeGroup = studentGroups.find((group) => group.memberIds?.includes(studentId));
                 if (activeGroup?.memberIds?.length) {
-                    const memberDocs = await Promise.all(activeGroup.memberIds.map((memberId) => getDoc(doc(db, `${BASE_PATH}/students`, memberId))));
-                    groupMemberProfileMap = memberDocs.reduce((acc, memberDoc, idx) => {
-                        if (memberDoc.exists()) acc[activeGroup.memberIds[idx]] = memberDoc.data();
-                        return acc;
-                    }, {});
+                    try {
+                        const memberDocs = await Promise.all(activeGroup.memberIds.map((memberId) => getDoc(doc(db, `${BASE_PATH}/students`, memberId))));
+                        groupMemberProfileMap = memberDocs.reduce((acc, memberDoc, idx) => {
+                            if (memberDoc.exists()) acc[activeGroup.memberIds[idx]] = memberDoc.data();
+                            return acc;
+                        }, {});
+                    } catch (memberError) {
+                        console.warn('Unable to load group member profiles for student dashboard.', memberError);
+                        groupMemberProfileMap = {};
+                    }
                 } else {
                     groupMemberProfileMap = {};
                 }
 
-                const [resultSchemaSnap, resultsSnap, staffSnap] = await Promise.all([
+                const [resultSchemaSnap, resultsSnap, staffSnap] = await Promise.allSettled([
                     getDocs(collection(db, `${BASE_PATH}/resultSchemas`)),
                     getDocs(query(collection(db, `${BASE_PATH}/examResults`), where('studentId', '==', studentId))),
                     getDocs(collection(db, `${BASE_PATH}/staff`))
                 ]);
-                const resultCenterSnap = await getDoc(doc(db, `${BASE_PATH}/settings`, 'resultCenter'));
-                resultCenterSettings = resultCenterSnap.exists() ? { blockedClasses: [], ...resultCenterSnap.data() } : { locked: false, blockedClasses: [] };
+                const getSettledDocs = (settled, label) => {
+                    if (settled.status === 'fulfilled') return settled.value.docs;
+                    console.warn(`Unable to load ${label} for student dashboard.`, settled.reason);
+                    return [];
+                };
+                try {
+                    const resultCenterSnap = await getDoc(doc(db, `${BASE_PATH}/settings`, 'resultCenter'));
+                    resultCenterSettings = resultCenterSnap.exists() ? { blockedClasses: [], ...resultCenterSnap.data() } : { locked: false, blockedClasses: [] };
+                } catch (resultCenterError) {
+                    console.warn('Unable to load result center settings for student dashboard.', resultCenterError);
+                    resultCenterSettings = { locked: false, blockedClasses: [] };
+                }
                 onSnapshot(doc(db, `${BASE_PATH}/settings`, 'resultCenter'), (snap) => {
                     resultCenterSettings = snap.exists() ? { blockedClasses: [], ...snap.data() } : { locked: false, blockedClasses: [] };
                     if (studentProfile) {
@@ -1595,9 +1633,9 @@ window.AppSession?.guardStudentPage?.();
                     console.warn('Unable to load student photo submission state.', photoError);
                     studentPhotoSubmission = {};
                 }
-                resultSchemas = resultSchemaSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-                allStaff = staffSnap.docs.map((d) => d.data());
-                const studentResults = resultsSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((item) => item.published !== false);
+                resultSchemas = getSettledDocs(resultSchemaSnap, 'result schemas').map((d) => ({ id: d.id, ...d.data() }));
+                allStaff = getSettledDocs(staffSnap, 'staff payment collectors').map((d) => d.data());
+                const studentResults = getSettledDocs(resultsSnap, 'student results').map((d) => ({ id: d.id, ...d.data() })).filter((item) => item.published !== false);
                 
                 document.getElementById('dash-name').textContent = st.name;
                 document.getElementById('dash-class').textContent = `Class: ${st.class || '-'}`;
@@ -1610,8 +1648,13 @@ window.AppSession?.guardStudentPage?.();
                 renderProfilePaymentDetails();
                 
                 if(st.name) document.getElementById('dash-avatar').textContent = st.name.charAt(0).toUpperCase();
-                const paySnap = await getDocs(query(collection(db, `${BASE_PATH}/payments`), where('studentId', '==', studentId)));
-                allPayments = paySnap.docs.map(d=>d.data());
+                try {
+                    const paySnap = await getDocs(query(collection(db, `${BASE_PATH}/payments`), where('studentId', '==', studentId)));
+                    allPayments = paySnap.docs.map(d=>d.data());
+                } catch (paymentError) {
+                    console.warn('Unable to load student payments for dashboard.', paymentError);
+                    allPayments = [];
+                }
 
                 studentProfile = st;
                 studentResultsCache = studentResults;
@@ -1663,9 +1706,12 @@ window.AppSession?.guardStudentPage?.();
 
             } catch (error) {
                 console.error("Error loading dashboard:", error);
-                alert("An error occurred. Please try again.");
                 const loader = document.getElementById('loading-screen');
                 if (loader) loader.style.display = 'none';
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer && !resultsContainer.innerHTML.trim()) {
+                    resultsContainer.innerHTML = buildEmptyState('Some dashboard data could not be loaded. Please refresh or contact office if this continues.', 'fa-exclamation-triangle');
+                }
             }
         }
 
