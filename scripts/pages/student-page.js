@@ -359,7 +359,7 @@ window.AppSession?.guardStudentPage?.();
             visibleResults.forEach((result, idx) => {
                 const resultClass = result.classLabel || classByYear[result.academicYear] || classLabel;
                 if (resultCenterSettings.blockedClasses?.includes(resultClass)) return;
-                const examLabel = result.examLabel || examLabels[result.examType] || result.examId || 'Exam';
+                const examLabel = getStudentResultExamLabel(result);
                 const academicYear = result.academicYear || profile?.academicYear || '--';
                 alerts.push({
                     id: `result-published-${result.id || stableNotificationHash(`${result.studentId || studentId}|${academicYear}|${examLabel}`)}`,
@@ -454,7 +454,7 @@ window.AppSession?.guardStudentPage?.();
 
                 const showUnreadDot = !n.isRead && shouldCountForBadge(n);
                 listContainer.innerHTML += `
-                    <button type="button" class="notify-item ${n.isRead ? '' : 'unread'}" onclick="handleNotifyClick('${n.id}', '${n.target}')">
+                    <button type="button" class="notify-item ${n.isRead ? '' : 'unread'}" data-notification-id="${escapeHtml(n.id)}" data-notification-target="${escapeHtml(n.target || '')}">
                         <div class="notify-icon ${iconClass}"><i class="fas ${n.icon}"></i></div>
                         <div class="notify-content">
                             <div class="notify-title">${escapeHtml(n.title)}</div>
@@ -510,6 +510,11 @@ window.AppSession?.guardStudentPage?.();
             } catch(e) { console.warn('Failed to mark all as read', e); }
         });
 
+        document.getElementById('student-notify-list')?.addEventListener('click', (event) => {
+            const button = event.target.closest('.notify-item');
+            if (!button) return;
+            window.handleNotifyClick(button.dataset.notificationId || '', button.dataset.notificationTarget || '');
+        });
         document.getElementById('student-notify-trigger')?.addEventListener('click', () => toggleNotifyPanel(true));
         document.getElementById('student-notify-close')?.addEventListener('click', () => toggleNotifyPanel(false));
         document.getElementById('student-notify-backdrop')?.addEventListener('click', () => toggleNotifyPanel(false));
@@ -616,6 +621,41 @@ window.AppSession?.guardStudentPage?.();
                 details: hasCollectorDetails ? collectorDetails : paymentDetails
             };
         };
+        const getPaymentDetailFields = (details = {}) => ([
+            { label: 'A/C Name', value: details.accountName || details.paymentAccountName || details.upiName || '' },
+            { label: 'UPI Number', value: details.upiNumber || details.paymentUpiNumber || '' },
+            { label: 'UPI ID', value: details.upiId || details.paymentUpiId || '' },
+            { label: 'Bank Name', value: details.bankName || details.paymentBankName || '' },
+            { label: 'Account Number', value: details.accountNumber || details.paymentAccountNumber || '' },
+            { label: 'IFSC Code', value: details.ifsc || details.paymentIfsc || '' },
+            { label: 'Branch', value: details.branch || details.paymentBranch || '' }
+        ].filter((field) => String(field.value || '').trim() !== ''));
+
+        const renderPaymentDetailRows = (details = {}, { copyable = false } = {}) => getPaymentDetailFields(details).map((field) => `
+            <div class="copy-pay-row">
+                <div><span class="text-gray-500">${escapeHtml(field.label)}:</span> ${escapeHtml(field.value)}</div>
+                ${copyable ? `<button class="copy-pay-detail-btn" data-copy-value="${encodeURIComponent(String(field.value))}" type="button">Copy</button>` : ''}
+            </div>
+        `).join('');
+
+        const renderProfilePaymentDetails = () => {
+            const container = document.getElementById('student-profile-payment-details');
+            if (!container) return;
+            const rows = renderPaymentDetailRows(paymentDetails, { copyable: true });
+            if (!rows) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            container.classList.remove('hidden');
+            container.innerHTML = `
+                <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-left">
+                    <div class="text-sm font-extrabold text-emerald-900 mb-2"><i class="fas fa-money-check-alt mr-1"></i> Payment Details</div>
+                    <div class="text-[11px] text-gray-700 bg-white/80 border border-emerald-100 rounded-lg p-2 space-y-1">${rows}</div>
+                </div>
+            `;
+        };
+
         const formatPublishDateTime = (value = '') => {
             if (!value) return 'Not scheduled';
             const parsed = new Date(value);
@@ -1003,6 +1043,16 @@ window.AppSession?.guardStudentPage?.();
             navItem?.classList.remove('hidden');
             bottomBtn?.classList.remove('hidden');
         };
+        const getStudentResultExamKey = (result = {}) => result.examType || result.examKey || String(result.examId || '').split('::').pop() || '';
+        const getStudentResultSchema = (result = {}, activeYear = '') => resultSchemas.find((item) => item.id === result.schemaId)
+            || resultSchemas.find((item) => item.academicYear === (result.academicYear || activeYear) && item.classLabel === result.classLabel)
+            || resultSchemas.find((item) => item.classLabel === result.classLabel);
+        const getStudentResultExamLabel = (result = {}) => {
+            const examKey = getStudentResultExamKey(result);
+            const schema = getStudentResultSchema(result, result.academicYear || '');
+            return result.examLabel || schema?.examConfigs?.[examKey]?.label || examLabels[examKey] || examKey || result.examId || 'Exam';
+        };
+
         const renderStudentResults = (profile, results = [], targetYear = '') => {
             try {
             const activeYear = targetYear || profile?.academicYear || '--';
@@ -1017,24 +1067,24 @@ window.AppSession?.guardStudentPage?.();
                 resultCountdownTimer = null;
             }
             if (resultCenterSettings.blockedClasses?.includes(classLabel)) {
-                container.innerHTML = buildEmptyState({ icon: 'fa-eye-slash', title: 'Class Blocked', message: 'Result visibility is temporarily blocked for your class.' });
+                container.innerHTML = buildEmptyState('Result visibility is temporarily blocked for your class.', 'fa-eye-slash');
                 return;
             }
-            const filteredResults = results.filter((result) => (result.academicYear || '') === activeYear);
+            const filteredResults = results.filter((result) => (result.academicYear || profile?.academicYear || '') === activeYear);
             const examSelect = document.getElementById('results-exam-select');
-            const examOptions = [...new Set(filteredResults.map((result) => result.examType || result.examKey || ''))].filter(Boolean);
+            const examOptions = [...new Set(filteredResults.map((result) => getStudentResultExamKey(result)))].filter(Boolean);
             if (examSelect) {
                 const defaultExam = resultCenterSettings.publishExamKey || examOptions[0] || '';
                 const prev = examSelect.value || defaultExam;
                 examSelect.innerHTML = `<option value="">All Exams</option>${examOptions.map((exam) => {
-                    const rawLabel = filteredResults.find((row) => (row.examType || row.examKey || '') === exam)?.examLabel || examLabels[exam] || exam;
+                    const rawLabel = getStudentResultExamLabel(filteredResults.find((row) => getStudentResultExamKey(row) === exam) || { examKey: exam });
                     const label = stringifyResultLabel(rawLabel, examLabels[exam] || exam);
                     return `<option value="${escapeHtml(exam)}">${escapeHtml(label)}</option>`;
                 }).join('')}`;
                 examSelect.value = prev;
             }
             const selectedExam = examSelect?.value || resultCenterSettings.publishExamKey || '';
-            const examScopedResults = selectedExam ? filteredResults.filter((result) => (result.examType || result.examKey || '') === selectedExam) : filteredResults;
+            const examScopedResults = selectedExam ? filteredResults.filter((result) => getStudentResultExamKey(result) === selectedExam) : filteredResults;
             
             const publishTs = resultCenterSettings.publishAt ? new Date(resultCenterSettings.publishAt).getTime() : 0;
             const shouldShowCountdown = Number.isFinite(publishTs) && publishTs > Date.now() && !filteredResults.length;
@@ -1102,13 +1152,13 @@ window.AppSession?.guardStudentPage?.();
             }
             const cards = examScopedResults
                 .sort((a, b) => {
-                    const aIndex = examOrder.indexOf(a.examType || a.examKey);
-                    const bIndex = examOrder.indexOf(b.examType || b.examKey);
+                    const aIndex = examOrder.indexOf(getStudentResultExamKey(a));
+                    const bIndex = examOrder.indexOf(getStudentResultExamKey(b));
                     return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
                 })
                 .map((result) => {
-                    const schema = resultSchemas.find((item) => item.academicYear === result.academicYear && item.classLabel === result.classLabel);
-                    const examKey = result.examType || result.examKey || '';
+                    const schema = getStudentResultSchema(result, activeYear);
+                    const examKey = getStudentResultExamKey(result);
                     const visibilityKey = `${result.classLabel || classLabel}__${examKey}`;
                     const rawVisibility = resultCenterSettings.resultVisibilityMap?.[visibilityKey];
                     const visibility = rawVisibility && typeof rawVisibility === 'object'
@@ -1121,7 +1171,7 @@ window.AppSession?.guardStudentPage?.();
                     const showGrades = visibility.grades;
                     const subjectKeys = Object.keys(result.grades || result.marks || {});
                     const rankRows = filteredResults
-                        .filter((item) => (item.examType || item.examKey) === examKey)
+                        .filter((item) => getStudentResultExamKey(item) === examKey)
                         .sort((a, b) => Number(b.totals?.obtained || 0) - Number(a.totals?.obtained || 0));
                     const currentRank = rankRows.findIndex((row) => row.studentId === result.studentId) + 1;
                     const tableRows = subjectKeys.map((key) => {
@@ -1140,7 +1190,7 @@ window.AppSession?.guardStudentPage?.();
                     return `
                         <div class="border rounded-xl p-4 mb-4 bg-white shadow-sm">
                             <div class="flex items-center justify-between mb-3">
-                                <h3 class="font-bold text-gray-900 text-center flex-1">${escapeHtml(stringifyResultLabel(result.examLabel || examLabels[examKey] || examKey, 'Exam'))}</h3>
+                                <h3 class="font-bold text-gray-900 text-center flex-1">${escapeHtml(stringifyResultLabel(getStudentResultExamLabel(result), 'Exam'))}</h3>
                                 <div class="flex items-center gap-3">
                                     <button class="poster-download-btn text-indigo-700 font-bold" data-exam="${escapeHtml(examKey)}" data-rank="${currentRank}" title="Download Poster"><i class="fas fa-download"></i></button>
                                     <button class="poster-share-btn text-indigo-700 font-bold" data-exam="${escapeHtml(examKey)}" title="Share Poster"><i class="fas fa-share-alt"></i></button>
@@ -1167,7 +1217,7 @@ window.AppSession?.guardStudentPage?.();
                 button.addEventListener('click', () => {
                     button.classList.add('animate-pulse');
                     const examType = button.dataset.exam;
-                    const result = examScopedResults.find((row) => (row.examType || row.examKey) === examType);
+                    const result = examScopedResults.find((row) => getStudentResultExamKey(row) === examType);
                     if (result) downloadRankPoster(result, button.closest('.border.rounded-xl')).catch((error) => console.warn('Download failed', error));
                     setTimeout(() => button.classList.remove('animate-pulse'), 1200);
                 });
@@ -1176,7 +1226,7 @@ window.AppSession?.guardStudentPage?.();
                 button.addEventListener('click', async () => {
                     button.classList.add('animate-pulse');
                     const examType = button.dataset.exam;
-                    const result = examScopedResults.find((row) => (row.examType || row.examKey) === examType);
+                    const result = examScopedResults.find((row) => getStudentResultExamKey(row) === examType);
                     if (result) {
                         try {
                             await shareRankPoster(result, button.closest('.border.rounded-xl'));
@@ -1190,7 +1240,7 @@ window.AppSession?.guardStudentPage?.();
             } catch (error) {
                 console.error('Failed to render student results', error);
                 const container = document.getElementById('results-container');
-                if (container) container.innerHTML = buildEmptyState({ icon: 'fa-exclamation-triangle', title: 'Unable to load results', message: 'Please refresh and try again.' });
+                if (container) container.innerHTML = buildEmptyState('Unable to load results. Please refresh and try again.', 'fa-exclamation-triangle');
             }
         };
         const saveStudentPhotoSubmission = async () => {};
@@ -1349,17 +1399,7 @@ window.AppSession?.guardStudentPage?.();
                 });
                 const paymentContext = getCollectorPaymentContext(classLabel);
                 const duePaymentDetails = paymentContext.details || {};
-                const paymentFields = [
-                    { label: 'A/C Name', value: duePaymentDetails.accountName || '' },
-                    { label: 'UPI Number', value: duePaymentDetails.upiNumber || '' },
-                    { label: 'UPI ID', value: duePaymentDetails.upiId || '' }
-                ].filter((field) => String(field.value || '').trim() !== '');
-                const accountLines = paymentFields.map((field) => `
-                    <div class="copy-pay-row">
-                        <div><span class="text-gray-500">${escapeHtml(field.label)}:</span> ${escapeHtml(field.value)}</div>
-                        <button class="copy-pay-detail-btn" data-copy-value="${encodeURIComponent(String(field.value))}" type="button">Copy</button>
-                    </div>
-                `).join('');
+                const accountLines = renderPaymentDetailRows(duePaymentDetails, { copyable: true });
                 return `
                     <div class="fee-card unpaid" onclick="openFeeDetailModal(this)" role="button" tabindex="0">
                         <div class="fee-status-badge">NOT PAID</div>
@@ -1463,10 +1503,15 @@ window.AppSession?.guardStudentPage?.();
                     defaultFee = conf.defaultFee || 200;
                     feeItems = conf.feeItems || [];
                     paymentDetails = {
-                        accountName: conf.paymentAccountName || '',
+                        accountName: conf.paymentAccountName || conf.paymentUpiName || '',
                         upiNumber: conf.paymentUpiNumber || '',
                         upiId: conf.paymentUpiId || '',
+                        bankName: conf.paymentBankName || '',
+                        accountNumber: conf.paymentAccountNumber || '',
+                        ifsc: conf.paymentIfsc || '',
+                        branch: conf.paymentBranch || ''
                     };
+                    renderProfilePaymentDetails();
                 });
 
                 onSnapshot(doc(db, `${BASE_PATH}/settings`, 'sessionControl'), (sessionSnap) => {
@@ -1550,6 +1595,7 @@ window.AppSession?.guardStudentPage?.();
                 document.getElementById('dash-father').textContent = st.father || '-';
                 document.getElementById('dash-mobile').textContent = st.mobile || '-';
                 document.getElementById('dash-addr').textContent = st.address || '-';
+                renderProfilePaymentDetails();
                 
                 if(st.name) document.getElementById('dash-avatar').textContent = st.name.charAt(0).toUpperCase();
                 const paySnap = await getDocs(query(collection(db, `${BASE_PATH}/payments`), where('studentId', '==', studentId)));

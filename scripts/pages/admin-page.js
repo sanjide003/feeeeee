@@ -3224,11 +3224,11 @@ document.getElementById('save-web-info-btn').addEventListener('click', async () 
             paymentAccountName: getInputValue('pay-account-name', (value) => value.trim()),
             paymentUpiNumber: getInputValue('pay-upi-number', (value) => value.trim()),
             paymentUpiId: getInputValue('pay-upi-id', (value) => value.trim()),
-            paymentBankName: '',
-            paymentAccountNumber: '',
-            paymentIfsc: '',
-            paymentBranch: '',
-            paymentUpiName: ''
+            paymentBankName: getInputValue('pay-bank-name', (value) => value.trim()),
+            paymentAccountNumber: getInputValue('pay-account-number', (value) => value.trim()),
+            paymentIfsc: getInputValue('pay-ifsc', (value) => value.trim().toUpperCase()),
+            paymentBranch: getInputValue('pay-branch', (value) => value.trim()),
+            paymentUpiName: getInputValue('pay-account-name', (value) => value.trim())
         }, {merge: true});
         await setDoc(doc(db, `${BASE_PATH}/settings`, 'content'), { description: getInputValue('web-about') }, {merge: true});
         await logAuditEvent({ category: 'website', action: 'website.info.save', entityType: 'settings', entityId: 'config', message: 'Website basic information updated.' });
@@ -4540,9 +4540,13 @@ onAuthStateChanged(auth, async (user) => {
             setValueIfExists('web-fb', d.socialFacebook || ''); setValueIfExists('web-ig', d.socialInstagram || '');
             setValueIfExists('web-tg', d.socialTelegram || ''); setValueIfExists('web-yt', d.socialYouTube || '');
             setValueIfExists('web-regno', d.regNo || ''); setValueIfExists('web-place', d.place || '');
-            setValueIfExists('pay-account-name', d.paymentAccountName || '');
+            setValueIfExists('pay-account-name', d.paymentAccountName || d.paymentUpiName || '');
             setValueIfExists('pay-upi-number', d.paymentUpiNumber || '');
             setValueIfExists('pay-upi-id', d.paymentUpiId || '');
+            setValueIfExists('pay-bank-name', d.paymentBankName || '');
+            setValueIfExists('pay-account-number', d.paymentAccountNumber || '');
+            setValueIfExists('pay-ifsc', d.paymentIfsc || '');
+            setValueIfExists('pay-branch', d.paymentBranch || '');
             document.getElementById('default-fee-input').value = d.defaultFee || 200; document.getElementById('fee-status-title-input').value = d.feeStatusTitle || '';
             document.getElementById('default-fee-receipt-req').checked = d.defaultReceiptMandatory || false;
 
