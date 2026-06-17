@@ -603,7 +603,18 @@ import { BASE_PATH, applyInstitutionBranding, escapeHtml, hardenExternalLinks, n
                             if(navGalleryLink) navGalleryLink.classList.remove('hidden');
                             if(heroBtnGallery) heroBtnGallery.classList.remove('hidden');
                             
-                            galleryUrls = gallery.map((url) => sanitizeUrl(url)).filter(Boolean);
+                            galleryUrls = gallery
+                                .map((item, originalIndex) => {
+                                    const parsedOrder = Number(item?.order);
+                                    return {
+                                        url: typeof item === 'string' ? item : (item?.url || item?.imageUrl || item?.src || ''),
+                                        order: Number.isFinite(parsedOrder) && parsedOrder > 0 ? parsedOrder : originalIndex + 1,
+                                        originalIndex
+                                    };
+                                })
+                                .sort((a, b) => (a.order - b.order) || (a.originalIndex - b.originalIndex))
+                                .map((item) => sanitizeUrl(item.url))
+                                .filter(Boolean);
                             document.getElementById('gallery-list').innerHTML = galleryUrls.map((safeUrl, index) => {
                                 return `<button type="button" class="gallery-item" data-gallery-index="${index}" data-gallery-url="${escapeHtml(safeUrl)}"><img src="${safeUrl}" alt="Gallery image ${index + 1}"></button>`;
                             }).join('');

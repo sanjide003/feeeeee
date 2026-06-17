@@ -3224,11 +3224,11 @@ document.getElementById('save-web-info-btn').addEventListener('click', async () 
             paymentAccountName: getInputValue('pay-account-name', (value) => value.trim()),
             paymentUpiNumber: getInputValue('pay-upi-number', (value) => value.trim()),
             paymentUpiId: getInputValue('pay-upi-id', (value) => value.trim()),
-            paymentBankName: '',
-            paymentAccountNumber: '',
-            paymentIfsc: '',
-            paymentBranch: '',
-            paymentUpiName: ''
+            paymentBankName: getInputValue('pay-bank-name', (value) => value.trim()),
+            paymentAccountNumber: getInputValue('pay-account-number', (value) => value.trim()),
+            paymentIfsc: getInputValue('pay-ifsc', (value) => value.trim().toUpperCase()),
+            paymentBranch: getInputValue('pay-branch', (value) => value.trim()),
+            paymentUpiName: getInputValue('pay-account-name', (value) => value.trim())
         }, {merge: true});
         await setDoc(doc(db, `${BASE_PATH}/settings`, 'content'), { description: getInputValue('web-about') }, {merge: true});
         await logAuditEvent({ category: 'website', action: 'website.info.save', entityType: 'settings', entityId: 'config', message: 'Website basic information updated.' });
@@ -3330,23 +3330,70 @@ document.getElementById('e-not-save').onclick = () => {
     }
 };
 
-const renderWebGallery = () => { document.getElementById('web-gallery-list').innerHTML = webContent.gallery.length === 0 ? '<p class="col-span-full text-sm italic text-gray-500 p-2">Gallery is empty.</p>' : webContent.gallery.map((url, i) => { const safeUrl = sanitizeUrl(url) || 'https://via.placeholder.com/320x180?text=Image'; return `<div class="relative rounded-xl overflow-hidden shadow-sm border border-gray-200"><img src="${safeUrl}" class="w-full h-32 object-cover" alt="Gallery image ${i + 1}"><div class="absolute top-2 right-2 flex items-center gap-2"><button class="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition transform hover:scale-110 gallery-action-btn" data-action="edit" data-index="${i}" aria-label="Edit image"><i class="fas fa-edit"></i></button><button class="bg-red-500 hover:bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition transform hover:scale-110 gallery-action-btn" data-action="delete" data-index="${i}" aria-label="Delete image"><i class="fas fa-trash"></i></button></div></div>`; }).join(''); };
+const normalizeGalleryItem = (item = {}, index = 0) => {
+    if (typeof item === 'string') {
+        return { url: item.trim(), order: index + 1 };
+    }
+    const parsedOrder = Number(item?.order);
+    return {
+        url: String(item?.url || item?.imageUrl || item?.src || '').trim(),
+        order: Number.isFinite(parsedOrder) && parsedOrder > 0 ? parsedOrder : index + 1
+    };
+};
+
+const normalizeGalleryList = () => {
+    webContent.gallery = Array.isArray(webContent.gallery) ? webContent.gallery.map(normalizeGalleryItem) : [];
+};
+
+const renderWebGallery = () => {
+    normalizeGalleryList();
+    document.getElementById('web-gallery-list').innerHTML = webContent.gallery.length === 0 ? '<p class="col-span-full text-sm italic text-gray-500 p-2">Gallery is empty.</p>' : webContent.gallery.map((item, i) => {
+        const safeUrl = sanitizeUrl(item.url) || 'https://via.placeholder.com/320x180?text=Image';
+        const orderValue = Number.isFinite(Number(item.order)) ? Number(item.order) : i + 1;
+        return `<div class="relative rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-white">
+            <img src="${safeUrl}" class="w-full h-32 object-cover" alt="Gallery image ${i + 1}">
+            <div class="p-3 space-y-2">
+                <label class="block text-xs font-bold text-gray-600" for="gal-order-${i}">Display order</label>
+                <input type="number" id="gal-order-${i}" class="gallery-order-input w-full p-2 border rounded-lg text-sm" min="1" step="1" value="${escapeHtml(String(orderValue))}" data-index="${i}" aria-label="Gallery image ${i + 1} display order">
+            </div>
+            <div class="absolute top-2 right-2 flex items-center gap-2"><button class="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition transform hover:scale-110 gallery-action-btn" data-action="edit" data-index="${i}" aria-label="Edit image"><i class="fas fa-edit"></i></button><button class="bg-red-500 hover:bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition transform hover:scale-110 gallery-action-btn" data-action="delete" data-index="${i}" aria-label="Delete image"><i class="fas fa-trash"></i></button></div>
+        </div>`;
+    }).join('');
+};
 document.getElementById('add-gal-btn').onclick = () => {
     if(!requirePermission('website.manage')) return;
     const url = document.getElementById('new-gal-url').value;
+    const orderInput = document.getElementById('new-gal-order');
+    const parsedOrder = Number(orderInput?.value);
+    const order = Number.isFinite(parsedOrder) && parsedOrder > 0 ? parsedOrder : webContent.gallery.length + 1;
     if(url) {
         if(!confirm("ഗാലറിയിലേക്ക് ചിത്രം ആഡ് ചെയ്യട്ടെ?")) return;
-        webContent.gallery.push(url); updateWebContent(); logAuditEvent({ category: 'website', action: 'gallery.create', entityType: 'gallery', message: 'Gallery image added.' }); document.getElementById('new-gal-url').value='';
+        normalizeGalleryList();
+        webContent.gallery.push({ url: url.trim(), order }); updateWebContent(); logAuditEvent({ category: 'website', action: 'gallery.create', entityType: 'gallery', message: 'Gallery image added.' }); document.getElementById('new-gal-url').value=''; if(orderInput) orderInput.value='';
     }
 };
-window.deleteGal = (idx) => { if(!requirePermission('website.manage')) return; if(!confirm("ചിത്രം ഡിലീറ്റ് ചെയ്യട്ടെ?")) return; webContent.gallery.splice(idx, 1); updateWebContent(); logAuditEvent({ category: 'website', action: 'gallery.delete', entityType: 'gallery', entityId: String(idx), message: 'Gallery image deleted.' }); };
+window.deleteGal = (idx) => { if(!requirePermission('website.manage')) return; if(!confirm("ചിത്രം ഡിലീറ്റ് ചെയ്യട്ടെ?")) return; normalizeGalleryList(); webContent.gallery.splice(idx, 1); updateWebContent(); logAuditEvent({ category: 'website', action: 'gallery.delete', entityType: 'gallery', entityId: String(idx), message: 'Gallery image deleted.' }); };
 window.editGal = (idx) => {
     if(!requirePermission('website.manage')) return;
-    const newUrl = prompt("Edit Image URL:", webContent.gallery[idx]);
+    normalizeGalleryList();
+    const newUrl = prompt("Edit Image URL:", webContent.gallery[idx]?.url || '');
     if(newUrl && newUrl.trim()) {
         if(!confirm("മാറ്റങ്ങൾ സേവ് ചെയ്യട്ടെ?")) return;
-        webContent.gallery[idx] = newUrl.trim(); updateWebContent(); logAuditEvent({ category: 'website', action: 'gallery.update', entityType: 'gallery', entityId: String(idx), message: 'Gallery image updated.' });
+        webContent.gallery[idx] = Object.assign({}, webContent.gallery[idx], { url: newUrl.trim() }); updateWebContent(); logAuditEvent({ category: 'website', action: 'gallery.update', entityType: 'gallery', entityId: String(idx), message: 'Gallery image updated.' });
     }
+};
+
+const updateGalleryOrder = (idx, value) => {
+    if(!requirePermission('website.manage')) return;
+    normalizeGalleryList();
+    const parsedOrder = Number(value);
+    if(!Number.isFinite(parsedOrder) || parsedOrder <= 0 || !webContent.gallery[idx]) {
+        renderWebGallery();
+        return;
+    }
+    webContent.gallery[idx] = Object.assign({}, webContent.gallery[idx], { order: parsedOrder });
+    updateWebContent();
+    logAuditEvent({ category: 'website', action: 'gallery.order.update', entityType: 'gallery', entityId: String(idx), message: 'Gallery image order updated.' });
 };
 
 document.getElementById('web-notices-page').addEventListener('click', (e) => {
@@ -3368,6 +3415,11 @@ document.getElementById('web-gallery-page').addEventListener('click', (e) => {
     if (!button) return;
     if (button.dataset.action === 'edit') window.editGal(Number(button.dataset.index));
     if (button.dataset.action === 'delete') window.deleteGal(Number(button.dataset.index));
+});
+document.getElementById('web-gallery-page').addEventListener('change', (e) => {
+    const input = e.target.closest('.gallery-order-input');
+    if (!input) return;
+    updateGalleryOrder(Number(input.dataset.index), input.value);
 });
 
 // --- 10B. DYNAMIC DIRECTORY CATEGORIES ---
@@ -4488,9 +4540,13 @@ onAuthStateChanged(auth, async (user) => {
             setValueIfExists('web-fb', d.socialFacebook || ''); setValueIfExists('web-ig', d.socialInstagram || '');
             setValueIfExists('web-tg', d.socialTelegram || ''); setValueIfExists('web-yt', d.socialYouTube || '');
             setValueIfExists('web-regno', d.regNo || ''); setValueIfExists('web-place', d.place || '');
-            setValueIfExists('pay-account-name', d.paymentAccountName || '');
+            setValueIfExists('pay-account-name', d.paymentAccountName || d.paymentUpiName || '');
             setValueIfExists('pay-upi-number', d.paymentUpiNumber || '');
             setValueIfExists('pay-upi-id', d.paymentUpiId || '');
+            setValueIfExists('pay-bank-name', d.paymentBankName || '');
+            setValueIfExists('pay-account-number', d.paymentAccountNumber || '');
+            setValueIfExists('pay-ifsc', d.paymentIfsc || '');
+            setValueIfExists('pay-branch', d.paymentBranch || '');
             document.getElementById('default-fee-input').value = d.defaultFee || 200; document.getElementById('fee-status-title-input').value = d.feeStatusTitle || '';
             document.getElementById('default-fee-receipt-req').checked = d.defaultReceiptMandatory || false;
 
